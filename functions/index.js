@@ -15,7 +15,7 @@ exports.calculateShipping = functions.https.onRequest((req, res) => {
       return;
     }
 
-    const originCep = "20000000";
+    const originCep = "21371121";
     const packageWeight = "1";
     const packageLength = "20";
     const packageHeight = "10";
