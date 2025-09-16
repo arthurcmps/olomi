@@ -163,7 +163,7 @@ form?.addEventListener('submit', async (e) => {
         
         const customerDataForWpp = { name: formData.name, phone: formData.phone, fullAddress };
 
-        const lojaNumero = '5519987346984'; // Substituir pelo número da loja
+        const lojaNumero = '55xxxxxxxxxxx'; // Substituir pelo número da loja
         const msg = buildWhatsappMessage(orderId, orderDetails, customerDataForWpp);
         const whatsappUrl = `https://wa.me/${lojaNumero}?text=${encodeURIComponent(msg)}`;
 
