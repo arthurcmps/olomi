@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nome do Produto - Olomi</title>
+  
+  <!-- CSS Unificado -->
+  <link rel="stylesheet" href="./css/style.css" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Rubik:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Scripts Corrigidos e Padronizados -->
+  <script type="module" src="./js/main.js" defer></script>
+  <script type="module" src="./js/produto.js" defer></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="logo-area">
+        <a href="/"><img src="./assets/img/logo.jpg" alt="Olomi Logo" class="logo"></a>
+        <h1><a href="/" style="text-decoration: none; color: inherit;">OLOMI</a></h1>
+      </div>
+      <nav>
+        <div id="admin-link-container" style="display: inline-block;"></div>
+        <a href="carrinho.html" class="cart-link">Carrinho (<span id="cart-count">0</span>)</a>
+        <div id="user-navigation" style="display: inline-block; margin-left: 1rem;"></div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-main">
+    <div class="container">
+      <a href="/" class="back-link">&larr; Voltar ao catálogo</a>
+      <div id="product-detail" class="product-detail-container">
+        <!-- O conteúdo do produto será carregado aqui pelo produto.js -->
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="footer-title">Olomi – Artigos Africanos e Religiosos</p>
+    </div>
+  </footer>
+
+</body>
+</html>

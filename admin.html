@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração - Olomi</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <header class="main-header">
+        <div class="container">
+            <a href="/" class="logo">Olomi</a>
+            <nav class="main-nav">
+                <a href="index.html">Loja</a>
+                <a href="minha-conta.html" class="active">Minha Conta</a>
+                <a href="carrinho.html">Carrinho</a>
+                <button id="logout" class="logout-btn">Sair</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container admin-page">
+        <h1 class="page-title">Painel de Administração</h1>
+
+        <section class="admin-section">
+            <h2 class="admin-section-title">Gestão de Produtos</h2>
+            <form id="product-form" class="admin-form">
+                <input type="text" name="name" placeholder="Nome do Produto" required>
+                <textarea name="description" placeholder="Descrição"></textarea>
+                <div class="form-grid">
+                    <input type="number" name="price" placeholder="Preço (ex: 19.99)" step="0.01" required>
+                    <input type="number" name="stock" placeholder="Stock" required>
+                    <input type="text" name="category" placeholder="Categoria" required>
+                </div>
+                <label for="image-upload" class="file-upload-label">Clique para carregar imagens</label>
+                <input type="file" id="image-upload" name="images" multiple accept="image/*">
+                <div id="image-preview-container"></div>
+                <button type="submit" class="submit-btn">Salvar Produto</button>
+            </form>
+
+            <div class="table-container">
+                <table id="products-table" class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Imagem</th>
+                            <th>Nome</th>
+                            <th>Preço</th>
+                            <th>Stock</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <h2 class="admin-section-title">Acompanhamento de Pedidos</h2>
+            <div class="table-container">
+                <table id="orders-table" class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Pedido</th>
+                            <th>Cliente</th>
+                            <th>Data</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2024 Olomi. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+    
+    <!-- ✅ CORREÇÃO DEFINITIVA: Adicionado o atributo 'defer' para garantir que o script só executa após o HTML carregar -->
+    <script type="module" src="./js/admin.js" defer></script>
+
+</body>
+</html>

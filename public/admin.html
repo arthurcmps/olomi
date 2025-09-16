@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Admin - Olomi</title>
+  
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/admin.css" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Rubik:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- SweetAlert2 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+
+  <script type="module" src="./js/admin.js" defer></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="logo-area">
+        <img src="./assets/img/logo.jpg" alt="Olomi Logo" class="logo">
+        <h1>Painel Admin</h1>
+      </div>
+      <nav>
+        <a href="index.html" class="nav-link">Ver Loja</a>
+        <a href="#" id="logout" class="nav-link">Sair</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-main">
+    <div class="container">
+      <section class="admin-section">
+        <h2 class="admin-section-title">Adicionar / Editar Produto</h2>
+        <form id="product-form" class="admin-form">
+          <input name="name" type="text" placeholder="Nome do Produto" required />
+          <textarea name="description" placeholder="Descrição do Produto" rows="4"></textarea>
+          <div class="form-grid">
+            <input name="price" type="text" placeholder="Preço (ex: 29,90)" required />
+            <input name="stock" type="number" placeholder="Estoque" required />
+          </div>
+          <input name="category" type="text" placeholder="Categoria" required />
+          
+          <label class="file-upload-label">
+            <span>Escolher imagens do produto</span>
+            <input id="image-upload" name="images" type="file" accept="image/*" multiple />
+          </label>
+          
+          <div id="image-preview-container" class="image-preview-container"></div>
+          
+          <button type="submit" class="submit-btn">Salvar Produto</button>
+        </form>
+      </section>
+      <section class="admin-section">
+        <h2 class="admin-section-title">Produtos Cadastrados</h2>
+        <div class="table-container">
+          <table id="products-table" class="admin-table">
+            <thead>
+              <tr>
+                <th>Imagem</th>
+                <th>Nome</th>
+                <th>Preço</th>
+                <th>Estoque</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="admin-section">
+        <h2 class="admin-section-title">Pedidos Recebidos</h2>
+        <div class="table-container">
+          <table id="orders-table" class="admin-table">
+            <thead>
+              <tr>
+                <th>ID do Pedido</th>
+                <th>Cliente</th>
+                <th>Data</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="footer-title">Olomi – Painel Administrativo</p>
+    </div>
+  </footer>
+
+</body>
+</html>

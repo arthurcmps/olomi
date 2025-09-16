@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carrinho de Compras - Olomi</title>
+    
+    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/carrinho.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Rubik:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- ✅ Biblioteca de Notificações (essencial para a função de finalização) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script type="module" src="./js/main.js?v=2.0" defer></script>
+    <script type="module" src="./js/carrinho.js" defer></script>
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="container">
+            <div class="logo-area">
+                <a href="/"><img src="./assets/img/logo.jpg" alt="Olomi Logo" class="logo"></a>
+                <h1><a href="/" style="text-decoration: none; color: inherit;">Meu Carrinho</a></h1>
+            </div>
+            <nav>
+                <div id="admin-link-container" style="display: inline-block;"></div>
+                <a href="index.html" class="cart-link">Continuar a Comprar</a>
+                <div id="user-navigation" style="display: inline-block; margin-left: 1rem;"></div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="site-main">
+        <div class="container">
+            <div id="cart-container" class="cart-layout">
+                <div class="cart-items-column">
+                    <h2 class="section-title">Itens no Carrinho</h2>
+                    <div id="cart-items-list"></div>
+                </div>
+                <div class="cart-summary-column">
+                    <div class="cart-summary">
+                        <h3 class="summary-title">Resumo do Pedido</h3>
+                        <div id="totals-summary"></div>
+                    </div>
+                    <div class="checkout-form-container">
+                        <h3 class="section-title">Dados para Envio</h3>
+                        <form id="checkout-form" class="checkout-form login-form" method="POST">
+                            <fieldset>
+                                <legend>Dados Pessoais</legend>
+                                <input name="name" placeholder="Nome completo" required />
+                                <input name="phone" placeholder="WhatsApp (DDD + Número)" required />
+                                <input name="email" type="email" placeholder="E-mail (opcional)" />
+                            </fieldset>
+                            <fieldset>
+                                <legend>Endereço de Entrega</legend>
+                                <input name="cep" type="text" placeholder="CEP (apenas números)" required />
+                                <input name="street" type="text" placeholder="Rua / Logradouro" required />
+                                <div class="form-grid">
+                                    <input name="number" type="text" placeholder="Número" required />
+                                    <input name="complement" type="text" placeholder="Complemento (opcional)" />
+                                </div>
+                                <input name="neighborhood" type="text" placeholder="Bairro" required />
+                                <input name="city" type="text" placeholder="Cidade" required />
+                                <input name="state" type="text" placeholder="Estado (UF)" required />
+                            </fieldset>
+                            <button type="submit" class="submit-btn">Finalizar via WhatsApp</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p class="footer-title">Olomi – Artigos Africanos e Religiosos</p>
+        </div>
+    </footer>
+
+</body>
+</html>
