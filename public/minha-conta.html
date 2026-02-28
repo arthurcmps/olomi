@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minha Conta - Olomi</title>
+    
+    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/login.css" />
+    <link rel="stylesheet" href="./css/cadastro.css" />
+    <link rel="stylesheet" href="./css/minha-conta.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Rubik:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script type="module" src="./js/main.js?v=2.0" defer></script>
+</head>
+<body>
+    <main class="site-main">
+        <div class="container">
+            <div class="account-layout">
+                <section id="user-details-section" class="admin-section">
+                    <h2 class="admin-section-title">Os Meus Dados</h2>
+                    <div id="user-details-content"></div>
+                </section>
+                <section id="order-history-section" class="admin-section">
+                    <h2 class="admin-section-title">Histórico de Encomendas</h2>
+                    <div id="order-history-list"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+    
+    <script type="module">
+      import { auth } from './js/firebase.js';
+      import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+      import { initMinhaContaPage } from './js/minha-conta.js';
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // Utilizador está autenticado, podemos carregar os dados da página.
+          initMinhaContaPage(user);
+        } else {
+          // Utilizador não está autenticado. Redireciona para a página de login
+          // porque esta página não tem utilidade para um visitante.
+          console.log("Utilizador não autenticado. A redirecionar para o login...");
+          window.location.href = 'login-cliente.html';
+        }
+      });
+    </script>
+</body>
+</html>

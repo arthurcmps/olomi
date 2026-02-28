@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- FUNÇÕES AUXILIARES ---
+    function isAdmin() {
+      // Garante que a função só é chamada com um UID válido.
+      return request.auth != null && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.admin == true;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- REGRAS ESPECÍFICAS ---
+
+    // Utilizadores só podem ler e editar os seus próprios dados.
+    match /users/{userId} {
+      allow read, update: if isOwner(userId);
+      allow create: if request.auth != null; // Permite o registo de um novo utilizador
+    }
+
+    // Funções só podem ser lidas pelo próprio utilizador ou por um admin.
+    match /roles/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if request.auth != null; // Permite a atribuição de função no registo
+    }
+
+    // Produtos podem ser lidos por todos, mas apenas escritos por administradores.
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Pedidos (orders)
+    match /orders/{orderId} {
+      // Um utilizador autenticado pode criar um pedido para si mesmo.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Um utilizador pode ler/atualizar os seus próprios pedidos, e um admin pode gerir todos.
+      allow read, update: if isAdmin() || (request.auth != null && isOwner(resource.data.userId));
+    }
+  }
+}

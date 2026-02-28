@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Criar Administrador Inicial - Olomi</title>
+    
+    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/login.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Rubik:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+    <script type="module" src="./js/criar-admin.js" defer></script>
+</head>
+<body>
+
+    <main class="login-container">
+        <div class="login-box">
+            <img src="./assets/img/logo.jpg" alt="Olomi Logo" class="login-logo">
+            <h1 class="login-title">Registar Administrador</h1>
+            <p class="login-subtitle">Utilize esta página apenas uma vez para criar a sua conta principal.</p>
+            
+            <form id="create-admin-form" class="login-form" method="POST">
+                <input name="name" type="text" placeholder="Nome Completo" required />
+                <input name="email" type="email" placeholder="E-mail do Administrador" required />
+                <input name="password" type="password" placeholder="Senha (mín. 6 caracteres)" required />
+                <input name="confirmPassword" type="password" placeholder="Confirme a Senha" required />
+                <button type="submit">Criar Administrador</button>
+            </form>
+        </div>
+    </main>
+
+</body>
+</html>

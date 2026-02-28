@@ -1,0 +1,78 @@
+/* Estilos para a página Minha Conta */
+
+.account-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    margin-top: 2.5rem;
+}
+
+.order-item {
+    padding: 1.5rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.order-item-header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 1rem;
+}
+
+.order-id {
+    font-family: var(--fonte-titulo);
+    font-size: 1.2rem;
+}
+
+.order-details p {
+    margin-bottom: 0.5rem;
+}
+
+.order-details strong {
+    color: var(--cor-preto);
+}
+
+.order-items-list {
+    grid-column: 1 / -1;
+    font-size: 0.9rem;
+    color: var(--cor-texto-claro);
+}
+
+/* --- ✅ NOVOS ESTILOS PARA O BADGE DE ESTADO --- */
+
+.order-status-badge {
+    padding: 0.4rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--cor-branco);
+    text-transform: capitalize;
+}
+
+.order-status-badge.pending {
+    background-color: #f39c12; /* Laranja */
+}
+
+.order-status-badge.shipped {
+    background-color: #27ae60; /* Verde */
+}
+
+.order-status-badge.cancelled {
+    background-color: #95a5a6; /* Cinza */
+}
+
+
+@media (min-width: 768px) {
+    .account-layout {
+        grid-template-columns: 1fr 1fr;
+        align-items: flex-start;
+    }
+}

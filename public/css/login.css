@@ -1,0 +1,116 @@
+/* Estilos específicos para a página de Login */
+
+body.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: var(--cor-fundo);
+}
+
+.login-container {
+    width: 100%;
+    padding: 1.5rem;
+}
+
+.login-box {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2.5rem;
+    background-color: var(--cor-branco);
+    border-radius: 8px;
+    box-shadow: var(--sombra-padrao);
+    text-align: center;
+}
+
+.login-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--cor-laranja);
+    margin: 0 auto 1rem;
+}
+
+.login-title {
+    font-family: var(--fonte-titulo);
+    font-size: 2rem;
+    color: var(--cor-preto);
+    margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+    font-family: var(--fonte-corpo);
+    color: var(--cor-texto-claro);
+    margin-bottom: 2rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: var(--fonte-corpo);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: var(--cor-laranja);
+    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.3);
+}
+
+.login-form button {
+    background-color: var(--cor-laranja);
+    color: var(--cor-branco);
+    font-weight: bold;
+    font-size: 1.1rem;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+.login-form button:hover {
+    background-color: var(--cor-laranja-hover);
+}
+
+.login-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.login-link, .back-to-store {
+    color: var(--cor-texto-claro);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.login-link:hover, .back-to-store:hover {
+    color: var(--cor-laranja);
+    text-decoration: underline;
+}
+
+.create-admin-link {
+    font-size: 0.8rem;
+    color: #aaa;
+    text-decoration: none;
+    margin-top: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+.create-admin-link:hover {
+    color: var(--cor-laranja);
+}

@@ -1,0 +1,27 @@
+name: Deploy to Firebase Preview Channel
+
+on:
+  push:
+    branches:
+      - tests # Dispara o workflow quando há um push para a branch 'tests'
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project (se necessário)
+        run: npm run build
+
+      - name: Deploy to Firebase Preview Channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: tests
+          projectId: seu-id-do-projeto-firebase # Substitua pelo ID do seu projeto
+          expires: 7d # Opcional: tempo para o canal expirar
