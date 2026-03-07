@@ -1,0 +1,14 @@
+# Chaves e Segredos de Nuvem
+chave-robo.json
+*-service-account.json
+*.pem
+
+# Ficheiros do Firebase e Sistema Operativo
+.firebase/
+firebase-debug.log
+.DS_Store
+Thumbs.db
+
+# Pastas de dependências (se usar no futuro)
+node_modules/
+.env
