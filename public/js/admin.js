@@ -4,7 +4,7 @@ import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, deleteDoc, orde
 import { BRL, showToast, showConfirmation } from './utils.js';
 import { getStorage, ref, deleteObject, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
 
-// --- Motor de Compressão de Imagens (Versão Robusta) ---
+// --- Motor de Compressão de Imagens ---
 const compressImage = async (file, maxWidth = 800, quality = 0.8) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -47,6 +47,7 @@ const ordersTableBody = document.querySelector('#orders-table tbody');
 let currentEditingProductId = null;
 let existingImageUrls = [];
 
+// --- Autenticação ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = 'login.html';
@@ -69,6 +70,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// --- Carregar Produtos ---
 const loadProducts = () => {
     const productsRef = collection(db, 'products');
     const q = query(productsRef, orderBy("name"));
@@ -78,17 +80,20 @@ const loadProducts = () => {
             const product = docSnap.data();
             const tr = document.createElement('tr');
             
-            // Lógica do Selo de Promoção
-            const temPromo = product.promotionalPrice && product.promotionalPrice > 0;
-            const badgePromo = temPromo 
-                ? `<br><span style="background-color: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; display: inline-block; margin-top: 4px;">Promoção: ${BRL(product.promotionalPrice)}</span>` 
-                : '';
-            const estiloPreco = temPromo ? 'text-decoration: line-through; color: #999; font-size: 0.9rem;' : '';
+            // Lógica para sinalizar a promoção na tabela
+            const isPromo = product.promotionalPrice && product.promotionalPrice > 0;
+            const nomeComBadge = isPromo 
+                ? `${product.name} <br><span style="background-color: #e74c3c; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; display: inline-block; margin-top: 5px;">🔥 Promoção Ativa</span>` 
+                : product.name;
+            
+            const precoFormatado = isPromo 
+                ? `<span style="text-decoration: line-through; color: #999; font-size: 0.85em;">${BRL(product.price)}</span> <br> <strong>${BRL(product.promotionalPrice)}</strong>` 
+                : BRL(product.price);
 
             tr.innerHTML = `
                 <td><img src="${product.imageUrls[0] || 'https://placehold.co/100x100/f39c12/fff?text=Olomi'}" alt="${product.name}" width="50"></td>
-                <td>${product.name} ${badgePromo}</td>
-                <td style="${estiloPreco}">${BRL(product.price)}</td>
+                <td>${nomeComBadge}</td>
+                <td>${precoFormatado}</td>
                 <td>${product.stock}</td>
                 <td class="actions-cell">
                     <button class="action-btn-icon edit" data-id="${docSnap.id}" title="Editar produto">
@@ -104,6 +109,7 @@ const loadProducts = () => {
     });
 };
 
+// --- Carregar Pedidos ---
 const loadOrders = () => {
     const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, orderBy("createdAt", "desc"));
@@ -160,7 +166,7 @@ const loadOrders = () => {
 
             const itemsHtml = order.items.map(item => `<li>${item.qty}x ${item.name} (${BRL(item.price)})</li>`).join('');
 
-            // CORREÇÃO: colspan="6" para alinhar corretamente no PC
+            // CORREÇÃO: colspan="6" para alinhar corretamente as 6 colunas
             detailsTr.innerHTML = `
                 <td colspan="6">
                     <div class="order-details-content" style="display: flex; gap: 2rem; text-align: left; padding: 1rem; background-color: #f9f9f9; border-radius: 8px;">
@@ -278,7 +284,7 @@ productsTableBody.addEventListener('click', async (e) => {
         productForm.name.value = product.name;
         productForm.description.value = product.description;
         productForm.price.value = product.price;
-        // CORREÇÃO: Puxando o preço promocional
+        // CORREÇÃO: Preenche o campo de promoção no formulário se existir
         productForm.promoPrice.value = product.promotionalPrice || '';
         productForm.stock.value = product.stock;
         productForm.category.value = product.category;
