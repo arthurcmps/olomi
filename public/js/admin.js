@@ -81,11 +81,20 @@ const loadProducts = () => {
         snapshot.forEach(docSnap => {
             const product = docSnap.data();
             const tr = document.createElement('tr');
-            // ✅ CORREÇÃO: Substituídos os botões de texto por ícones SVG
+            
+            // 👉 LÓGICA DO SELO DE PROMOÇÃO NA TABELA
+            const temPromo = product.promotionalPrice && product.promotionalPrice > 0;
+            const badgePromo = temPromo 
+                ? `<br><span style="background-color: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; display: inline-block; margin-top: 4px;">Promoção: ${BRL(product.promotionalPrice)}</span>` 
+                : '';
+
+            // Se tiver promoção, o preço antigo fica cinza e rasurado
+            const estiloPreco = temPromo ? 'text-decoration: line-through; color: #999; font-size: 0.9rem;' : '';
+
             tr.innerHTML = `
                 <td><img src="${product.imageUrls[0] || 'https://placehold.co/100x100/f39c12/fff?text=Olomi'}" alt="${product.name}" width="50"></td>
-                <td>${product.name}</td>
-                <td>${BRL(product.price)}</td>
+                <td>${product.name} ${badgePromo}</td>
+                <td style="${estiloPreco}">${BRL(product.price)}</td>
                 <td>${product.stock}</td>
                 <td class="actions-cell">
                     <button class="action-btn-icon edit" data-id="${docSnap.id}" title="Editar produto">
@@ -123,12 +132,10 @@ const loadOrders = () => {
             };
             const statusInfo = statusMap[order.status] || statusMap.pending;
 
-            // --- AQUI COMEÇA A CORREÇÃO DE LEITURA DOS DADOS DO CLIENTE E FRETE ---
             const customer = order.customer || {};
             const address = customer.address || {};
             const shipping = order.shipping || { method: 'Nenhum', cost: 0 };
 
-            // Formata o endereço de forma segura, verificando se os campos existem
             const formattedAddress = address.street 
                 ? `${address.street}, ${address.number} ${address.complement ? '- ' + address.complement : ''}<br>${address.neighborhood}, ${address.city} - ${address.state}<br>CEP: ${address.cep}` 
                 : (order.customer?.fullAddress || 'Endereço não fornecido');
@@ -164,8 +171,9 @@ const loadOrders = () => {
 
             const itemsHtml = order.items.map(item => `<li>${item.qty}x ${item.name} (${BRL(item.price)})</li>`).join('');
 
+            // 👉 CORREÇÃO DO DESALINHAMENTO: Mudança para colspan="6" para ocupar toda a largura da tabela
             detailsTr.innerHTML = `
-                <td colspan="5">
+                <td colspan="6">
                     <div class="order-details-content" style="display: flex; gap: 2rem; text-align: left; padding: 1rem; background-color: #f9f9f9; border-radius: 8px;">
                         <div style="flex: 1;">
                             <p><strong>ID do Pedido:</strong> ${orderId}</p>
@@ -240,7 +248,7 @@ ordersTableBody.addEventListener('click', async (e) => {
 });
 
 productsTableBody.addEventListener('click', async (e) => {
-    const target = e.target.closest('.action-btn-icon'); // Target icon buttons
+    const target = e.target.closest('.action-btn-icon'); 
     if (!target) return;
 
     const id = target.getAttribute('data-id');
@@ -282,6 +290,10 @@ productsTableBody.addEventListener('click', async (e) => {
         productForm.name.value = product.name;
         productForm.description.value = product.description;
         productForm.price.value = product.price;
+        
+        // 👉 CORREÇÃO: Puxar a promoção para o campo do formulário
+        productForm.promoPrice.value = product.promotionalPrice || '';
+        
         productForm.stock.value = product.stock;
         productForm.category.value = product.category;
         productForm.weight.value = product.weight || '';
@@ -317,30 +329,21 @@ productForm.addEventListener('submit', async (e) => {
         let imageUrls = existingImageUrls;
         const files = imageUpload.files;
 
-        // SE HOUVER IMAGENS NOVAS, FAZ O UPLOAD DIRETO PARA O FIREBASE STORAGE
         if (files.length > 0) {
             const novasImagens = [];
             
-            // Usamos Array.from para garantir que o loop funciona em todos os navegadores
             for (const file of Array.from(files)) {
-                // 1. Comprime a imagem (recebemos um Blob super leve)
                 const compressedBlob = await compressImage(file, 800, 0.8);
-
-                // 2. Forçamos o nome do ficheiro a ter a extensão .webp
                 const novoNome = file.name.replace(/\.[^/.]+$/, "") + ".webp";
                 const fileRef = ref(storage, `products/${Date.now()}_${novoNome}`);
-                
-                // 3. FAZEMOS O UPLOAD COM METADADOS EXPLÍCITOS (Isto garante a conversão no Firebase!)
                 const metadata = { contentType: 'image/webp' };
                 const snapshot = await uploadBytes(fileRef, compressedBlob, metadata);                
-                
                 const downloadURL = await getDownloadURL(snapshot.ref);
                 novasImagens.push(downloadURL);
             }
             
             imageUrls = novasImagens;
 
-            // Apaga as imagens antigas se estiver a editar
             if (isEditing && existingImageUrls.length > 0) {
                  for (const url of existingImageUrls) {
                     await deleteObject(ref(storage, url)).catch(err => console.warn("Aviso ao apagar imagem antiga:", err));
@@ -348,10 +351,8 @@ productForm.addEventListener('submit', async (e) => {
             }
         }
 
-        // Corrige o preço caso o utilizador digite com vírgula (ex: 29,90 -> 29.90)
         const precoFormatado = productForm.price.value.replace(',', '.');
 
-        // Prepara os dados para o Firestore
         const productData = {
             name: productForm.name.value,
             description: productForm.description.value,
@@ -366,7 +367,6 @@ productForm.addEventListener('submit', async (e) => {
             imageUrls: imageUrls
         };
 
-        // Grava no Firestore
         if (isEditing) {
             await updateDoc(doc(db, 'products', currentEditingProductId), productData);
             showToast('Produto atualizado com sucesso!', 'success');
@@ -375,7 +375,6 @@ productForm.addEventListener('submit', async (e) => {
             showToast('Produto adicionado com sucesso!', 'success');
         }
 
-        // Limpa o formulário
         productForm.reset();
         imagePreviewContainer.innerHTML = '';
         currentEditingProductId = null;
