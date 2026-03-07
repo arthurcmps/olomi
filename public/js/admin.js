@@ -23,7 +23,6 @@ const compressImage = async (file, maxWidth = 800, quality = 0.8) => {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 
-                // Converte para WebP e devolve um Blob puro
                 canvas.toBlob((blob) => {
                     if (blob) {
                         resolve(blob);
@@ -38,7 +37,6 @@ const compressImage = async (file, maxWidth = 800, quality = 0.8) => {
     });
 };
 
-// --- Seletores de DOM (Versão Simplificada e Final) ---
 const storage = getStorage();
 const productForm = document.getElementById('product-form');
 const imageUpload = document.getElementById('image-upload');
@@ -49,7 +47,6 @@ const ordersTableBody = document.querySelector('#orders-table tbody');
 let currentEditingProductId = null;
 let existingImageUrls = [];
 
-// --- Autenticação e Verificação de Permissões ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = 'login.html';
@@ -72,7 +69,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- Funções Principais ---
 const loadProducts = () => {
     const productsRef = collection(db, 'products');
     const q = query(productsRef, orderBy("name"));
@@ -82,13 +78,11 @@ const loadProducts = () => {
             const product = docSnap.data();
             const tr = document.createElement('tr');
             
-            // 👉 LÓGICA DO SELO DE PROMOÇÃO NA TABELA
+            // Lógica do Selo de Promoção
             const temPromo = product.promotionalPrice && product.promotionalPrice > 0;
             const badgePromo = temPromo 
                 ? `<br><span style="background-color: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; display: inline-block; margin-top: 4px;">Promoção: ${BRL(product.promotionalPrice)}</span>` 
                 : '';
-
-            // Se tiver promoção, o preço antigo fica cinza e rasurado
             const estiloPreco = temPromo ? 'text-decoration: line-through; color: #999; font-size: 0.9rem;' : '';
 
             tr.innerHTML = `
@@ -142,21 +136,16 @@ const loadOrders = () => {
 
             tr.innerHTML = `
                 <td><strong>#${orderId.substring(0, 6)}</strong></td>
-                
                 <td>
                     <strong>${customer.name || 'Cliente (Sem Nome)'}</strong><br>
                     <small>📱 ${customer.phone || 'Sem telefone'}</small>
                 </td>
-
                 <td>${orderDate}</td>
-
                 <td>
                     <strong>${BRL(order.total)}</strong><br>
                     <small style="color: #666;">Frete: ${shipping.method} (${BRL(shipping.cost)})</small>
                 </td>
-
                 <td><span class="status ${statusInfo.class}">${statusInfo.text}</span></td>
-
                 <td class="order-actions">
                     ${(order.status === 'pending' || order.status === 'paid') ?
                     `<button class="action-btn ship" data-id="${orderId}">Marcar Enviado</button>
@@ -171,7 +160,7 @@ const loadOrders = () => {
 
             const itemsHtml = order.items.map(item => `<li>${item.qty}x ${item.name} (${BRL(item.price)})</li>`).join('');
 
-            // 👉 CORREÇÃO DO DESALINHAMENTO: Mudança para colspan="6" para ocupar toda a largura da tabela
+            // CORREÇÃO: colspan="6" para alinhar corretamente no PC
             detailsTr.innerHTML = `
                 <td colspan="6">
                     <div class="order-details-content" style="display: flex; gap: 2rem; text-align: left; padding: 1rem; background-color: #f9f9f9; border-radius: 8px;">
@@ -202,7 +191,6 @@ const loadOrders = () => {
         });
     });
 };
-
 
 imageUpload.addEventListener('change', (e) => {
     imagePreviewContainer.innerHTML = '';
@@ -248,7 +236,7 @@ ordersTableBody.addEventListener('click', async (e) => {
 });
 
 productsTableBody.addEventListener('click', async (e) => {
-    const target = e.target.closest('.action-btn-icon'); 
+    const target = e.target.closest('.action-btn-icon');
     if (!target) return;
 
     const id = target.getAttribute('data-id');
@@ -290,10 +278,8 @@ productsTableBody.addEventListener('click', async (e) => {
         productForm.name.value = product.name;
         productForm.description.value = product.description;
         productForm.price.value = product.price;
-        
-        // 👉 CORREÇÃO: Puxar a promoção para o campo do formulário
+        // CORREÇÃO: Puxando o preço promocional
         productForm.promoPrice.value = product.promotionalPrice || '';
-        
         productForm.stock.value = product.stock;
         productForm.category.value = product.category;
         productForm.weight.value = product.weight || '';
@@ -336,8 +322,10 @@ productForm.addEventListener('submit', async (e) => {
                 const compressedBlob = await compressImage(file, 800, 0.8);
                 const novoNome = file.name.replace(/\.[^/.]+$/, "") + ".webp";
                 const fileRef = ref(storage, `products/${Date.now()}_${novoNome}`);
+                
                 const metadata = { contentType: 'image/webp' };
                 const snapshot = await uploadBytes(fileRef, compressedBlob, metadata);                
+                
                 const downloadURL = await getDownloadURL(snapshot.ref);
                 novasImagens.push(downloadURL);
             }
