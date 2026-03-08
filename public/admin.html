@@ -52,6 +52,22 @@
         </form>
       </section>
       <section class="admin-section">
+        <h2 class="admin-section-title">Aparência da Loja (Tema)</h2> 
+        <form id="theme-form" class="admin-form">
+          <div class="form-grid">
+            <div>
+              <label for="themeColor" style="display:block; margin-bottom: 5px; font-weight: bold;">Cor Principal dos Botões</label>
+              <input type="color" id="themeColor" name="themeColor" value="#f39c12" style="height: 50px; cursor: pointer; padding: 0;" />
+            </div>
+            <div>
+              <label for="topBarText" style="display:block; margin-bottom: 5px; font-weight: bold;">Mensagem do Topo (Faixa de Anúncio)</label>
+              <input type="text" id="topBarText" name="topBarText" placeholder="Ex: Frete Grátis acima de R$ 200!" />
+            </div>
+          </div>
+          <button type="submit" class="submit-btn" style="margin-top: 1rem;">Aplicar Tema na Loja</button>
+        </form>
+      </section>
+      <section class="admin-section">
         <h2 class="admin-section-title">Produtos Cadastrados</h2>
         <div class="table-container">
           <table id="products-table" class="admin-table">

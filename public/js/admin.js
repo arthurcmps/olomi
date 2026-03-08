@@ -62,6 +62,7 @@ onAuthStateChanged(auth, async (user) => {
         } else {
             loadProducts();
             loadOrders();
+            loadThemeSettings();
         }
     } catch (error) {
         console.error('Erro ao verificar permissões:', error);
@@ -383,3 +384,107 @@ productForm.addEventListener('submit', async (e) => {
         imageUpload.value = '';
     }
 });
+
+// ==========================================
+// MOTOR DE TEMAS (Aparência da Loja)
+// ==========================================
+const themeForm = document.getElementById('theme-form');
+
+// 1. Carregar o tema atual quando o admin entra
+const loadThemeSettings = async () => {
+    try {
+        const themeRef = doc(db, 'settings', 'storeTheme');
+        const themeSnap = await getDoc(themeRef);
+        
+        if (themeSnap.exists()) {
+            const data = themeSnap.data();
+            if(data.primaryColor) themeForm.themeColor.value = data.primaryColor;
+            if(data.topBarMessage) themeForm.topBarText.value = data.topBarMessage;
+        }
+    } catch (error) {
+        console.error("Erro ao carregar tema:", error);
+    }
+};
+
+// 2. Salvar o novo tema
+if (themeForm) {
+    themeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = themeForm.querySelector('button');
+        btn.textContent = 'Aplicando...';
+        btn.disabled = true;
+
+        try {
+            const themeRef = doc(db, 'settings', 'storeTheme');
+            await updateDoc(themeRef, {
+                primaryColor: themeForm.themeColor.value,
+                topBarMessage: themeForm.topBarText.value,
+                updatedAt: new Date()
+            }).catch(async (err) => {
+                // Se o documento não existir, ele cria pela primeira vez
+                if(err.code === 'not-found') {
+                    const { setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
+                    await setDoc(themeRef, {
+                        primaryColor: themeForm.themeColor.value,
+                        topBarMessage: themeForm.topBarText.value,
+                        updatedAt: new Date()
+                    });
+                } else { throw err; }
+            });
+
+            showToast('Tema atualizado com sucesso! A loja mudou de cor.', 'success');
+        } catch (error) {
+            console.error("Erro ao salvar tema:", error);
+            showToast('Erro ao atualizar tema.', 'error');
+        } finally {
+            btn.textContent = 'Aplicar Tema na Loja';
+            btn.disabled = false;
+        }
+    });
+}
+
+// ==========================================
+// APLICADOR DE TEMA DINÂMICO
+// ==========================================
+async function applyStoreTheme() {
+    try {
+        const themeRef = doc(db, 'settings', 'storeTheme');
+        const themeSnap = await getDoc(themeRef);
+        
+        if (themeSnap.exists()) {
+            const theme = themeSnap.data();
+            
+            // 1. Mudar a Cor Principal (Altera os botões e detalhes no CSS)
+            if (theme.primaryColor) {
+                document.documentElement.style.setProperty('--cor-laranja', theme.primaryColor);
+                // Calcula uma cor ligeiramente mais escura para o hover do botão
+                document.documentElement.style.setProperty('--cor-laranja-hover', theme.primaryColor + 'dd');
+            }
+
+            // 2. Adicionar a Faixa de Anúncio no Topo
+            if (theme.topBarMessage && theme.topBarMessage.trim() !== '') {
+                const topBar = document.createElement('div');
+                topBar.id = 'dynamic-top-bar';
+                topBar.style.cssText = `
+                    background-color: var(--cor-laranja);
+                    color: white;
+                    text-align: center;
+                    padding: 8px 15px;
+                    font-size: 0.9rem;
+                    font-weight: bold;
+                    width: 100%;
+                    z-index: 1000;
+                `;
+                topBar.textContent = theme.topBarMessage;
+                
+                // Insere a faixa no topo absoluto da página
+                document.body.insertBefore(topBar, document.body.firstChild);
+            }
+        }
+    } catch (error) {
+        console.error("Erro ao aplicar o tema da loja:", error);
+    }
+}
+
+// Chama a função para pintar a loja assim que o script carregar
+applyStoreTheme();
