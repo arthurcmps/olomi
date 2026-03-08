@@ -393,6 +393,9 @@ const logoContainer = document.getElementById('logo-edit-container');
 const logoInput = document.getElementById('logoUpload');
 const currentLogoImg = document.getElementById('current-logo-img');
 
+// Variável para guardar a imagem em "rascunho" antes de salvar
+let selectedLogoFile = null;
+
 // 1. Carregar o tema e a logo atual quando o admin entra
 const loadThemeSettings = async () => {
     try {
@@ -410,61 +413,50 @@ const loadThemeSettings = async () => {
     }
 };
 
-// 2. Lógica do UPLOAD AUTOMÁTICO DA LOGO (Ao clicar na imagem)
+// 2. PRÉ-VISUALIZAÇÃO DA LOGO (Não faz upload, apenas mostra na tela)
 if (logoContainer && logoInput) {
-    // Quando clica na imagem, simula um clique no input escondido
     logoContainer.addEventListener('click', () => logoInput.click());
 
-    logoInput.addEventListener('change', async (e) => {
+    logoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Pré-visualização imediata e efeito de "carregando"
+        // Guarda o arquivo na memória para enviar só quando clicar em Salvar
+        selectedLogoFile = file;
+
+        // Cria a pré-visualização instantânea
         const reader = new FileReader();
-        reader.onload = (event) => currentLogoImg.src = event.target.result;
+        reader.onload = (event) => {
+            currentLogoImg.src = event.target.result;
+        };
         reader.readAsDataURL(file);
-        logoContainer.style.opacity = '0.5'; 
-
-        try {
-            showToast('Salvando nova logo...', 'info');
-            
-            // Faz o upload da imagem
-            const fileRef = ref(storage, `settings/logo_${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(fileRef, file);
-            const finalLogoUrl = await getDownloadURL(snapshot.ref);
-
-            // Salva a nova URL no banco de dados
-            const themeRef = doc(db, 'settings', 'storeTheme');
-            await updateDoc(themeRef, { logoUrl: finalLogoUrl, updatedAt: new Date() }).catch(async (err) => {
-                if(err.code === 'not-found') {
-                    const { setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
-                    await setDoc(themeRef, { logoUrl: finalLogoUrl, updatedAt: new Date() });
-                } else throw err;
-            });
-
-            logoContainer.style.opacity = '1';
-            showToast('Logo atualizada com sucesso!', 'success');
-            
-            // Atualiza o cabeçalho do próprio painel admin
-            document.querySelectorAll('.logo, .login-logo').forEach(img => img.src = finalLogoUrl);
-
-        } catch (error) {
-            console.error("Erro ao subir logo:", error);
-            showToast('Erro ao atualizar a logo.', 'error');
-            logoContainer.style.opacity = '1';
-        }
     });
 }
 
-// 3. Salvar apenas as CORES e TEXTOS
+// 3. SALVAR TUDO (Cores, Textos e fazer o Upload da Logo se houver)
 if (themeForm) {
+    // Mudar o texto do botão para refletir que salva tudo
+    const btnSubmit = themeForm.querySelector('button');
+    if (btnSubmit) btnSubmit.textContent = 'Salvar Tema da Loja';
+
     themeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = themeForm.querySelector('button');
-        btn.textContent = 'Salvando Tema...';
+        btn.textContent = 'Salvando...';
         btn.disabled = true;
 
         try {
+            let finalLogoUrl = null;
+
+            // Se o admin tiver escolhido uma foto nova, faz o upload agora!
+            if (selectedLogoFile) {
+                showToast('Fazendo upload da nova logo...', 'info');
+                const fileRef = ref(storage, `settings/logo_${Date.now()}_${selectedLogoFile.name}`);
+                const snapshot = await uploadBytes(fileRef, selectedLogoFile);
+                finalLogoUrl = await getDownloadURL(snapshot.ref);
+            }
+
+            // Prepara os dados de cor e texto
             const themeRef = doc(db, 'settings', 'storeTheme');
             const themeData = {
                 primaryColor: themeForm.themeColor.value,
@@ -472,6 +464,12 @@ if (themeForm) {
                 updatedAt: new Date()
             };
 
+            // Se houver uma URL de logo nova, adiciona ao pacote de dados
+            if (finalLogoUrl) {
+                themeData.logoUrl = finalLogoUrl;
+            }
+
+            // Salva no banco de dados
             await updateDoc(themeRef, themeData).catch(async (err) => {
                 if(err.code === 'not-found') {
                     const { setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
@@ -479,12 +477,19 @@ if (themeForm) {
                 } else throw err;
             });
 
-            showToast('Cores e textos atualizados com sucesso!', 'success');
+            showToast('Tema atualizado com sucesso!', 'success');
+
+            // Se a logo mudou, limpa a memória e atualiza o cabeçalho do painel
+            if (finalLogoUrl) {
+                document.querySelectorAll('.logo, .login-logo').forEach(img => img.src = finalLogoUrl);
+                selectedLogoFile = null; 
+            }
+
         } catch (error) {
             console.error("Erro ao salvar tema:", error);
             showToast('Erro ao atualizar tema.', 'error');
         } finally {
-            btn.textContent = 'Salvar Cores e Texto';
+            btn.textContent = 'Salvar Tema da Loja';
             btn.disabled = false;
         }
     });
