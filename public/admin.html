@@ -52,20 +52,44 @@
         </form>
       </section>
       <section class="admin-section">
-        <h2 class="admin-section-title">Aparência da Loja (Tema)</h2> 
-        <form id="theme-form" class="admin-form">
-          <div class="form-grid">
-            <div>
-              <label for="themeColor" style="display:block; margin-bottom: 5px; font-weight: bold;">Cor Principal dos Botões</label>
-              <input type="color" id="themeColor" name="themeColor" value="#f39c12" style="height: 50px; cursor: pointer; padding: 0;" />
+        <h2 class="admin-section-title">Aparência da Loja (Tema)</h2>
+        
+        <style>
+          .logo-edit-container:hover .logo-overlay { opacity: 1 !important; }
+        </style>
+
+        <div style="display: flex; gap: 3rem; align-items: center; flex-wrap: wrap;">
+          
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <label style="font-weight: bold; margin-bottom: 15px;">Logotipo da Loja</label>
+            
+            <div class="logo-edit-container" id="logo-edit-container" style="position: relative; width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--cor-laranja); overflow: hidden; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+              <img id="current-logo-img" src="./assets/img/logo.jpg" alt="Logo Atual" style="width: 100%; height: 100%; object-fit: cover;" />
+              
+              <div class="logo-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              </div>
             </div>
-            <div>
-              <label for="topBarText" style="display:block; margin-bottom: 5px; font-weight: bold;">Mensagem do Topo (Faixa de Anúncio)</label>
-              <input type="text" id="topBarText" name="topBarText" placeholder="Ex: Frete Grátis acima de R$ 200!" />
-            </div>
+            
+            <input type="file" id="logoUpload" accept="image/png, image/jpeg, image/webp" style="display: none;" />
+            <span style="font-size: 0.85rem; color: #666; margin-top: 10px;">Clique na imagem para alterar</span>
           </div>
-          <button type="submit" class="submit-btn" style="margin-top: 1rem;">Aplicar Tema na Loja</button>
-        </form>
+
+          <form id="theme-form" class="admin-form" style="flex: 1; min-width: 300px;">
+            <div class="form-grid">
+              <div>
+                <label for="themeColor" style="display:block; margin-bottom: 5px; font-weight: bold;">Cor Principal dos Botões</label>
+                <input type="color" id="themeColor" name="themeColor" value="#f39c12" style="height: 50px; cursor: pointer; padding: 0;" />
+              </div>
+              <div>
+                <label for="topBarText" style="display:block; margin-bottom: 5px; font-weight: bold;">Mensagem da Faixa no Topo</label>
+                <input type="text" id="topBarText" name="topBarText" placeholder="Ex: Frete Grátis acima de R$ 200!" />
+              </div>
+            </div>
+            <button type="submit" class="submit-btn" style="margin-top: 1rem;">Salvar Cores e Texto</button>
+          </form>
+
+        </div>
       </section>
       <section class="admin-section">
         <h2 class="admin-section-title">Produtos Cadastrados</h2>

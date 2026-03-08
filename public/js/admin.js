@@ -386,11 +386,14 @@ productForm.addEventListener('submit', async (e) => {
 });
 
 // ==========================================
-// MOTOR DE TEMAS (Aparência da Loja)
+// MOTOR DE TEMAS E LOGO (Aparência da Loja)
 // ==========================================
 const themeForm = document.getElementById('theme-form');
+const logoContainer = document.getElementById('logo-edit-container');
+const logoInput = document.getElementById('logoUpload');
+const currentLogoImg = document.getElementById('current-logo-img');
 
-// 1. Carregar o tema atual quando o admin entra
+// 1. Carregar o tema e a logo atual quando o admin entra
 const loadThemeSettings = async () => {
     try {
         const themeRef = doc(db, 'settings', 'storeTheme');
@@ -400,91 +403,89 @@ const loadThemeSettings = async () => {
             const data = themeSnap.data();
             if(data.primaryColor) themeForm.themeColor.value = data.primaryColor;
             if(data.topBarMessage) themeForm.topBarText.value = data.topBarMessage;
+            if(data.logoUrl) currentLogoImg.src = data.logoUrl;
         }
     } catch (error) {
         console.error("Erro ao carregar tema:", error);
     }
 };
 
-// 2. Salvar o novo tema
-if (themeForm) {
-    themeForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = themeForm.querySelector('button');
-        btn.textContent = 'Aplicando...';
-        btn.disabled = true;
+// 2. Lógica do UPLOAD AUTOMÁTICO DA LOGO (Ao clicar na imagem)
+if (logoContainer && logoInput) {
+    // Quando clica na imagem, simula um clique no input escondido
+    logoContainer.addEventListener('click', () => logoInput.click());
+
+    logoInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Pré-visualização imediata e efeito de "carregando"
+        const reader = new FileReader();
+        reader.onload = (event) => currentLogoImg.src = event.target.result;
+        reader.readAsDataURL(file);
+        logoContainer.style.opacity = '0.5'; 
 
         try {
+            showToast('Salvando nova logo...', 'info');
+            
+            // Faz o upload da imagem
+            const fileRef = ref(storage, `settings/logo_${Date.now()}_${file.name}`);
+            const snapshot = await uploadBytes(fileRef, file);
+            const finalLogoUrl = await getDownloadURL(snapshot.ref);
+
+            // Salva a nova URL no banco de dados
             const themeRef = doc(db, 'settings', 'storeTheme');
-            await updateDoc(themeRef, {
-                primaryColor: themeForm.themeColor.value,
-                topBarMessage: themeForm.topBarText.value,
-                updatedAt: new Date()
-            }).catch(async (err) => {
-                // Se o documento não existir, ele cria pela primeira vez
+            await updateDoc(themeRef, { logoUrl: finalLogoUrl, updatedAt: new Date() }).catch(async (err) => {
                 if(err.code === 'not-found') {
                     const { setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
-                    await setDoc(themeRef, {
-                        primaryColor: themeForm.themeColor.value,
-                        topBarMessage: themeForm.topBarText.value,
-                        updatedAt: new Date()
-                    });
-                } else { throw err; }
+                    await setDoc(themeRef, { logoUrl: finalLogoUrl, updatedAt: new Date() });
+                } else throw err;
             });
 
-            showToast('Tema atualizado com sucesso! A loja mudou de cor.', 'success');
+            logoContainer.style.opacity = '1';
+            showToast('Logo atualizada com sucesso!', 'success');
+            
+            // Atualiza o cabeçalho do próprio painel admin
+            document.querySelectorAll('.logo, .login-logo').forEach(img => img.src = finalLogoUrl);
+
         } catch (error) {
-            console.error("Erro ao salvar tema:", error);
-            showToast('Erro ao atualizar tema.', 'error');
-        } finally {
-            btn.textContent = 'Aplicar Tema na Loja';
-            btn.disabled = false;
+            console.error("Erro ao subir logo:", error);
+            showToast('Erro ao atualizar a logo.', 'error');
+            logoContainer.style.opacity = '1';
         }
     });
 }
 
-// ==========================================
-// APLICADOR DE TEMA DINÂMICO
-// ==========================================
-async function applyStoreTheme() {
-    try {
-        const themeRef = doc(db, 'settings', 'storeTheme');
-        const themeSnap = await getDoc(themeRef);
-        
-        if (themeSnap.exists()) {
-            const theme = themeSnap.data();
-            
-            // 1. Mudar a Cor Principal (Altera os botões e detalhes no CSS)
-            if (theme.primaryColor) {
-                document.documentElement.style.setProperty('--cor-laranja', theme.primaryColor);
-                // Calcula uma cor ligeiramente mais escura para o hover do botão
-                document.documentElement.style.setProperty('--cor-laranja-hover', theme.primaryColor + 'dd');
-            }
+// 3. Salvar apenas as CORES e TEXTOS
+if (themeForm) {
+    themeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = themeForm.querySelector('button');
+        btn.textContent = 'Salvando Tema...';
+        btn.disabled = true;
 
-            // 2. Adicionar a Faixa de Anúncio no Topo
-            if (theme.topBarMessage && theme.topBarMessage.trim() !== '') {
-                const topBar = document.createElement('div');
-                topBar.id = 'dynamic-top-bar';
-                topBar.style.cssText = `
-                    background-color: var(--cor-laranja);
-                    color: white;
-                    text-align: center;
-                    padding: 8px 15px;
-                    font-size: 0.9rem;
-                    font-weight: bold;
-                    width: 100%;
-                    z-index: 1000;
-                `;
-                topBar.textContent = theme.topBarMessage;
-                
-                // Insere a faixa no topo absoluto da página
-                document.body.insertBefore(topBar, document.body.firstChild);
-            }
+        try {
+            const themeRef = doc(db, 'settings', 'storeTheme');
+            const themeData = {
+                primaryColor: themeForm.themeColor.value,
+                topBarMessage: themeForm.topBarText.value,
+                updatedAt: new Date()
+            };
+
+            await updateDoc(themeRef, themeData).catch(async (err) => {
+                if(err.code === 'not-found') {
+                    const { setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
+                    await setDoc(themeRef, themeData);
+                } else throw err;
+            });
+
+            showToast('Cores e textos atualizados com sucesso!', 'success');
+        } catch (error) {
+            console.error("Erro ao salvar tema:", error);
+            showToast('Erro ao atualizar tema.', 'error');
+        } finally {
+            btn.textContent = 'Salvar Cores e Texto';
+            btn.disabled = false;
         }
-    } catch (error) {
-        console.error("Erro ao aplicar o tema da loja:", error);
-    }
+    });
 }
-
-// Chama a função para pintar a loja assim que o script carregar
-applyStoreTheme();
