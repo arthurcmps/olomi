@@ -105,3 +105,94 @@ if (userNavContainer && adminLinkContainer) {
 } else {
     console.error('Elementos de navegação do cabeçalho não encontrados. O HTML está correto?');
 }
+
+// ==========================================
+// APLICADOR DE TEMA DINÂMICO
+// ==========================================
+async function applyStoreTheme() {
+    try {
+        const themeRef = doc(db, 'settings', 'storeTheme');
+        const themeSnap = await getDoc(themeRef);
+        
+        if (themeSnap.exists()) {
+            const theme = themeSnap.data();
+            
+            // 1. MUDAR A COR PRINCIPAL (Com Força Bruta CSS)
+            if (theme.primaryColor) {
+                // Atualiza as variáveis nativas
+                document.documentElement.style.setProperty('--cor-laranja', theme.primaryColor);
+                document.documentElement.style.setProperty('--cor-laranja-hover', theme.primaryColor + 'dd');
+
+                // Injeta um CSS invisível para forçar a cor em elementos teimosos
+                let dynamicStyle = document.getElementById('dynamic-theme-css');
+                if (!dynamicStyle) {
+                    dynamicStyle = document.createElement('style');
+                    dynamicStyle.id = 'dynamic-theme-css';
+                    document.head.appendChild(dynamicStyle);
+                }
+                
+                dynamicStyle.innerHTML = `
+                    /* Força a cor nos botões */
+                    button, 
+                    button[type="submit"], 
+                    .submit-btn, 
+                    .add-to-cart-btn, 
+                    .add-to-cart-btn-large,
+                    .btn-primary {
+                        background-color: ${theme.primaryColor} !important;
+                        color: #ffffff !important;
+                        border: none !important;
+                    }
+                    
+                    /* Força a cor no Hover (quando o rato passa por cima) */
+                    button:hover, 
+                    button[type="submit"]:hover, 
+                    .submit-btn:hover, 
+                    .add-to-cart-btn:hover, 
+                    .add-to-cart-btn-large:hover,
+                    .btn-primary:hover {
+                        background-color: ${theme.primaryColor}dd !important; 
+                    }
+
+                    /* Força a cor em detalhes e textos */
+                    .login-logo, .logo-edit-container { border-color: ${theme.primaryColor} !important; }
+                    .back-link, .login-link { color: ${theme.primaryColor} !important; }
+                    .product-price-large { color: ${theme.primaryColor} !important; }
+                    .login-form legend { border-bottom-color: ${theme.primaryColor} !important; }
+                `;
+            }
+
+            // 2. Adicionar a Faixa de Anúncio
+            if (theme.topBarMessage && theme.topBarMessage.trim() !== '') {
+                const topBar = document.createElement('div');
+                topBar.id = 'dynamic-top-bar';
+                topBar.style.cssText = `
+                    background-color: var(--cor-laranja);
+                    color: white;
+                    text-align: center;
+                    padding: 8px 15px;
+                    font-size: 0.9rem;
+                    font-weight: bold;
+                    width: 100%;
+                    z-index: 1000;
+                `;
+                topBar.textContent = theme.topBarMessage;
+                // Evita criar várias faixas duplicadas
+                if (!document.getElementById('dynamic-top-bar')) {
+                    document.body.insertBefore(topBar, document.body.firstChild);
+                }
+            }
+
+            // 3. Trocar a Logo Dinamicamente
+            if (theme.logoUrl) {
+                const logos = document.querySelectorAll('.logo, .login-logo');
+                logos.forEach(img => img.src = theme.logoUrl);
+            }
+        }
+    } catch (error) {
+        console.error("Erro ao aplicar o tema da loja:", error);
+    }
+}
+
+// Chama a função para pintar a loja assim que o script carregar
+applyStoreTheme();
