@@ -2,7 +2,7 @@ const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https")
 const { logger } = require("firebase-functions");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
-const axios = require('axios'); // Vamos usar o axios para consultar o ViaCEP
+const axios = require('axios'); // Vamos usar o axios para consultar APIs
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 
 initializeApp();
@@ -62,7 +62,7 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                 createdAt: Timestamp.now() 
             });
             
-   // --- INTEGRAÇÃO MERCADO PAGO ---
+            // --- INTEGRAÇÃO MERCADO PAGO ---
             const client = new MercadoPagoConfig({ accessToken: 'TEST-1703928170803920-022522-76e65d6dea70c0339d6baa69736a623d-230652618' });
             const preference = new Preference(client);
 
@@ -87,10 +87,10 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                     },
                     auto_return: "approved",
                     external_reference: orderRef.id 
-                } // <-- Fim do objeto body
-            }); // <-- Fim da chamada preference.create
+                } 
+            }); 
 
-            // 👉 AGORA SIM! O comando fica do lado de fora, depois de já termos a resposta do Mercado Pago
+            // 👉 Atualiza a base de dados com o link de pagamento
             transaction.update(orderRef, { paymentUrl: mpResponse.sandbox_init_point }); 
 
             // Retorna o link de pagamento de teste (sandbox) para o site
@@ -99,14 +99,14 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                 orderDetails, 
                 checkoutUrl: mpResponse.sandbox_init_point 
             };
-        }); // Fim da transaction
+        }); 
         return result;
     } catch (error) {
         throw new HttpsError('internal', error.message || 'Erro ao processar pedido.');
     }
 });
 
-// --- NOVA FUNÇÃO DE FRETE (DINÂMICA E ANTI-BLOQUEIO) ---
+
 // --- NOVA FUNÇÃO DE FRETE (API SUPERFRETE REAL) ---
 exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request) => {
     const { cepDestino, items } = request.data;
@@ -132,13 +132,11 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
         maiorComprimento = Math.max(maiorComprimento, (parseFloat(item.length) || 20));
     });
 
-    // O SuperFrete exige dimensões mínimas aceitas pelos Correios (Ex: Altura mínima 2cm)
-
-    // O SuperFrete exige dimensões mínimas e os IDs dos serviços
+    // O SuperFrete exige dimensões mínimas e os IDs dos serviços (1=PAC, 2=SEDEX)
     const payloadSuperFrete = {
-        from: { postal_code: "21371270" }, // O seu CEP de Origem (RJ)
+        from: { postal_code: "21371270" }, // O seu CEP de Origem
         to: { postal_code: cepDestino.replace(/\D/g, '') },
-        services: "1,2", // 🔴 NOVO: 1 = PAC, 2 = SEDEX
+        services: "1,2", 
         package: {
             weight: Math.max(0.1, pesoTotal),
             height: Math.max(2, alturaTotal),
@@ -149,28 +147,34 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
     
     try {
         // 2. CHAMADA OFICIAL À API DO SUPERFRETE
-        // 👉 ATENÇÃO: COLOQUE O SEU TOKEN DO SUPERFRETE NA LINHA ABAIXO
         const SUPERFRETE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NzM1MDM0OTEsInN1YiI6IkxFczJNa0kyUENhVVZOZnhhRjhma2FDQ0gyQjMifQ.WeF19JgJWGIHKHdQzN9NVlQ-dp4KQjFHkLY_diHz6IM';
 
+        // 👉 MUDANÇA CRUCIAL AQUI: api.superfrete.com
         const response = await axios.post(
-            'https://www.superfrete.com/api/v0/calculator', 
+            'https://api.superfrete.com/api/v0/calculator', 
             payloadSuperFrete,
             {
                 headers: {
                     'Authorization': `Bearer ${SUPERFRETE_TOKEN}`,
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    // 👉 MUDANÇA CRUCIAL AQUI: Disfarce de Navegador Chrome
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
             }
         );
 
         // 3. RETORNA OS DADOS REAIS PARA O FRONTEND
-        // O SuperFrete devolve um Array com todas as transportadoras.
-        // O seu carrinho.js vai receber isto e filtrar apenas os 'Correios'.
         return response.data;
 
     } catch (error) {
-        logger.error("Erro na API do SuperFrete:", error.response?.data || error.message);
+        // Log com Raio-X para capturar a resposta exata do servidor caso falhe
+        const statusErro = error.response ? error.response.status : 'Sem Status';
+        const detalheDoErro = error.response && error.response.data 
+            ? JSON.stringify(error.response.data) 
+            : error.message;
+            
+        logger.error(`Erro SuperFrete [${statusErro}]:`, detalheDoErro);
         throw new HttpsError('internal', 'Falha ao conectar com a transportadora. Tente novamente.');
     }
 });
