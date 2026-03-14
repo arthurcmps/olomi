@@ -133,17 +133,20 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
     });
 
     // O SuperFrete exige dimensões mínimas aceitas pelos Correios (Ex: Altura mínima 2cm)
+
+    // O SuperFrete exige dimensões mínimas e os IDs dos serviços
     const payloadSuperFrete = {
-        from: { postal_code: "20766720" }, // O seu CEP de Origem (RJ)
+        from: { postal_code: "21371270" }, // O seu CEP de Origem (RJ)
         to: { postal_code: cepDestino.replace(/\D/g, '') },
+        services: "1,2", // 🔴 NOVO: 1 = PAC, 2 = SEDEX
         package: {
-            weight: Math.max(0.1, pesoTotal), // Peso mínimo 100g
-            height: Math.max(2, alturaTotal), // Altura mínima 2cm
-            width: Math.max(11, maiorLargura), // Largura mínima 11cm
-            length: Math.max(16, maiorComprimento) // Comprimento mínimo 16cm
+            weight: Math.max(0.1, pesoTotal),
+            height: Math.max(2, alturaTotal),
+            width: Math.max(11, maiorLargura),
+            length: Math.max(16, maiorComprimento)
         }
     };
-
+    
     try {
         // 2. CHAMADA OFICIAL À API DO SUPERFRETE
         // 👉 ATENÇÃO: COLOQUE O SEU TOKEN DO SUPERFRETE NA LINHA ABAIXO
