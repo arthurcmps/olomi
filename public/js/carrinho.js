@@ -25,64 +25,64 @@ if (btnCalcShipping) {
             return;
         }
 
-        shippingResult.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div> Buscando opções...';
+        shippingResult.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div> Buscando opções nos Correios...';
         btnCalcShipping.disabled = true;
 
         const cart = cartStore.get();
         const itemsForFreight = cart.map(item => ({
             qty: item.qty,
-            weight: item.weight,
-            length: item.length,
-            width: item.width,
-            height: item.height
+            weight: item.weight || 0.5, // Garante um peso mínimo
+            length: item.length || 20,
+            width: item.width || 20,
+            height: item.height || 20
         }));
 
-            const functionsBR = getFunctions(functions.app, 'southamerica-east1');
-            const calcularFreteFunction = httpsCallable(functionsBR, 'calcularfrete');
+        const functionsBR = getFunctions(functions.app, 'southamerica-east1');
+        const calcularFreteFunction = httpsCallable(functionsBR, 'calcularfrete');
+        
         try {
             const result = await calcularFreteFunction({ cepDestino: cep, items: itemsForFreight });
-            const opcoesFrete = result.data.fretes;
-
-            // NOVA LÓGICA: Verifica se os correios retornaram um erro em vez do preço
-            let htmlOpcoes = '<div style="margin-top: 1rem; text-align: left; display: flex; flex-direction: column; gap: 0.5rem;">';
-            let encontrouFrete = false;
-            let mensagemErroCorreios = '';
             
-            opcoesFrete.forEach(opcao => {
-                const tipo = opcao.Codigo === '04510' ? 'PAC' : 'SEDEX';
-                
-                if (opcao.MsgErro && opcao.MsgErro.trim() !== '') {
-                    // Guarda o erro dos correios para mostrar ao utilizador
-                    mensagemErroCorreios += `<p style="margin:0; font-size: 0.9rem;"><strong>${tipo}:</strong> ${opcao.MsgErro}</p>`;
-                } else {
-                    const valorNumerico = parseFloat(opcao.Valor.replace(',', '.'));
+            // A API do SuperFrete retorna a lista completa aqui
+            const todasOpcoes = result.data;
+
+            // --- O FILTRO MÁGICO ---
+            // Ignora Jadlog, Loggi, etc., e pega apenas o que for da empresa "Correios"
+            const apenasCorreios = todasOpcoes.filter(opcao => 
+                opcao.company && opcao.company.name.toUpperCase() === 'CORREIOS'
+            );
+
+            let htmlOpcoes = '<div style="margin-top: 1rem; text-align: left; display: flex; flex-direction: column; gap: 0.5rem;">';
+            
+            if (apenasCorreios.length > 0) {
+                apenasCorreios.forEach(opcao => {
+                    // O SuperFrete já manda o nome ("PAC" ou "SEDEX") e o preço
+                    const tipo = opcao.name; 
+                    const valorNumerico = parseFloat(opcao.price);
+                    
                     htmlOpcoes += `
                         <label style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                             <div>
                                 <input type="radio" name="escolhaFrete" value="${valorNumerico}" data-nome="${tipo}" onchange="selecionarFrete(this)">
-                                <strong>${tipo}</strong> (até ${opcao.PrazoEntrega} dias úteis)
+                                <strong>${tipo}</strong> (até ${opcao.delivery_time} dias úteis)
                             </div>
                             <span>${BRL(valorNumerico)}</span>
                         </label>
                     `;
-                    encontrouFrete = true;
-                }
-            });
-            htmlOpcoes += '</div>';
-            
-            if (encontrouFrete) {
+                });
+                htmlOpcoes += '</div>';
                 shippingResult.innerHTML = htmlOpcoes;
             } else {
-                // Se os Correios recusaram PAC e SEDEX, mostra o motivo na tela
+                // Se a API não devolver opções dos Correios para este CEP
                 shippingResult.innerHTML = `<div style="color: #e74c3c; margin-top: 1rem; padding: 1rem; border: 1px solid #ffcccc; border-radius: 8px; background-color: #fff9f9;">
-                    <strong style="display:block; margin-bottom:0.5rem;">Os Correios não conseguiram calcular o frete:</strong>
-                    ${mensagemErroCorreios}
+                    <strong style="display:block;">Indisponível no momento.</strong>
+                    Não foi possível calcular o frete dos Correios para este CEP. Verifique se o CEP está correto.
                 </div>`;
             }
 
         } catch (error) {
             console.error("Erro do frete:", error);
-            shippingResult.innerHTML = `<span style="color: #e74c3c; display: block; margin-top: 1rem;">Erro de conexão: ${error.message}</span>`;
+            shippingResult.innerHTML = `<span style="color: #e74c3c; display: block; margin-top: 1rem;">Erro ao consultar os Correios: Tente novamente.</span>`;
         } finally {
             btnCalcShipping.disabled = false;
         }

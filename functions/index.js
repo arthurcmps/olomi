@@ -107,6 +107,7 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
 });
 
 // --- NOVA FUNÇÃO DE FRETE (DINÂMICA E ANTI-BLOQUEIO) ---
+// --- NOVA FUNÇÃO DE FRETE (API SUPERFRETE REAL) ---
 exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request) => {
     const { cepDestino, items } = request.data;
 
@@ -114,76 +115,60 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
         throw new HttpsError('invalid-argument', 'CEP e itens são obrigatórios.');
     }
 
-    // 1. Calcula o peso total do carrinho (mínimo de 1kg)
+    // 1. CUBAGEM INTELIGENTE (Simulando uma única caixa para todos os itens)
     let pesoTotal = 0;
+    let alturaTotal = 0;
+    let maiorLargura = 0;
+    let maiorComprimento = 0;
+
     items.forEach(item => {
-        pesoTotal += (parseFloat(item.weight) || 0.5) * item.qty;
+        const qty = item.qty || 1;
+        // Soma os pesos
+        pesoTotal += (parseFloat(item.weight) || 0.5) * qty;
+        // Empilha os produtos (soma as alturas)
+        alturaTotal += (parseFloat(item.height) || 15) * qty;
+        // Pega a maior largura e comprimento para a base da caixa
+        maiorLargura = Math.max(maiorLargura, (parseFloat(item.width) || 20));
+        maiorComprimento = Math.max(maiorComprimento, (parseFloat(item.length) || 20));
     });
-    const pesoReal = Math.max(1, Math.ceil(pesoTotal)); 
+
+    // O SuperFrete exige dimensões mínimas aceitas pelos Correios (Ex: Altura mínima 2cm)
+    const payloadSuperFrete = {
+        from: { postal_code: "20766720" }, // O seu CEP de Origem (RJ)
+        to: { postal_code: cepDestino.replace(/\D/g, '') },
+        package: {
+            weight: Math.max(0.1, pesoTotal), // Peso mínimo 100g
+            height: Math.max(2, alturaTotal), // Altura mínima 2cm
+            width: Math.max(11, maiorLargura), // Largura mínima 11cm
+            length: Math.max(16, maiorComprimento) // Comprimento mínimo 16cm
+        }
+    };
 
     try {
-        // --- MOTOR DE FRETE GEOGRÁFICO ---
-        
-        // 👉 AQUI ENTRA O SEU CEP DE ORIGEM (Apenas números)
-        // Coloque o CEP exato de onde os produtos da Olomi saem.
-        const cepOrigem = '20766720'; 
-        const cepDestinoLimpo = cepDestino.replace(/\D/g, '');
+        // 2. CHAMADA OFICIAL À API DO SUPERFRETE
+        // 👉 ATENÇÃO: COLOQUE O SEU TOKEN DO SUPERFRETE NA LINHA ABAIXO
+        const SUPERFRETE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NzM1MDM0OTEsInN1YiI6IkxFczJNa0kyUENhVVZOZnhhRjhma2FDQ0gyQjMifQ.WeF19JgJWGIHKHdQzN9NVlQ-dp4KQjFHkLY_diHz6IM';
 
-        // Usamos os 3 primeiros dígitos do CEP para ter uma precisão de região/bairro
-        const baseOrigem = parseInt(cepOrigem.substring(0, 3));
-        const baseDestino = parseInt(cepDestinoLimpo.substring(0, 3));
-
-        // Calcula a distância matemática entre as duas regiões
-        const distanciaGeografica = Math.abs(baseOrigem - baseDestino);
-
-        // Valores Base de Frete (Para a mesma cidade/bairro)
-        let valorPac = 15.00;
-        let valorSedex = 21.00;
-        let prazoPac = 3;
-        let prazoSedex = 1;
-
-        // 2. Acréscimo por Distância
-        // Quanto maior a diferença entre os CEPs, mais o valor aumenta.
-        // Ex: CEPs do mesmo estado variam pouco. De RJ para SP sobe um pouco. Para a Bahia sobe mais.
-        const custoDistanciaPac = distanciaGeografica * 0.18;
-        const custoDistanciaSedex = distanciaGeografica * 0.35;
-
-        valorPac += custoDistanciaPac;
-        valorSedex += custoDistanciaSedex;
-
-        // 3. Acréscimo de Prazo por Distância
-        prazoPac += Math.ceil(distanciaGeografica / 25);
-        prazoSedex += Math.ceil(distanciaGeografica / 70);
-
-        // 4. Acréscimo pelo Peso da Encomenda
-        // Quilos extras ficam mais caros se a distância for maior
-        const custoQuiloExtra = 3.50 + (distanciaGeografica * 0.02);
-        const taxaPeso = (pesoReal - 1) * custoQuiloExtra;
-
-        valorPac += taxaPeso;
-        valorSedex += taxaPeso;
-
-        // 5. Retorna o formato exato para o frontend
-        return {
-            fretes: [
-                {
-                    Codigo: '04510',
-                    Valor: valorPac.toFixed(2).replace('.', ','),
-                    PrazoEntrega: prazoPac.toString(),
-                    MsgErro: ''
-                },
-                {
-                    Codigo: '04014',
-                    Valor: valorSedex.toFixed(2).replace('.', ','),
-                    PrazoEntrega: prazoSedex.toString(),
-                    MsgErro: ''
+        const response = await axios.post(
+            'https://www.superfrete.com/api/v0/calculator', 
+            payloadSuperFrete,
+            {
+                headers: {
+                    'Authorization': `Bearer ${SUPERFRETE_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
-            ]
-        };
+            }
+        );
+
+        // 3. RETORNA OS DADOS REAIS PARA O FRONTEND
+        // O SuperFrete devolve um Array com todas as transportadoras.
+        // O seu carrinho.js vai receber isto e filtrar apenas os 'Correios'.
+        return response.data;
 
     } catch (error) {
-        logger.error("Erro no cálculo de frete:", error.message);
-        throw new HttpsError('internal', `Falha ao calcular frete: ${error.message}`);
+        logger.error("Erro na API do SuperFrete:", error.response?.data || error.message);
+        throw new HttpsError('internal', 'Falha ao conectar com a transportadora. Tente novamente.');
     }
 });
 
