@@ -1,6 +1,5 @@
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js';
-// 🔴 CORREÇÃO: Importação única e limpa (juntámos o setDoc aqui)
 import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, deleteDoc, orderBy, query, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js';
 import { BRL, showToast, showConfirmation } from './utils.js';
 import { getStorage, ref, deleteObject, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
