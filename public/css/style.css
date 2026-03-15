@@ -39,29 +39,41 @@ main.site-main { flex-grow: 1; padding: 2.5rem 0; }
 /* =========================================
    ANIMAÇÃO DA FAIXA DO TOPO (TEMA) - MODO FORÇADO
    ========================================= */
+/* =========================================
+   ANIMAÇÃO DA FAIXA DO TOPO (TEMA) - MODO ABSOLUTO
+   ========================================= */
 .top-bar {
-    width: 100vw !important; /* Força a ocupar a largura total do ecrã */
-    max-width: 100% !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
-    display: block !important; /* Flexbox às vezes espreme o letreiro, block resolve */
-    box-sizing: border-box !important;
     position: relative !important;
+    width: 100% !important;
+    height: 40px !important; /* Altura fixa para a faixa não sumir */
+    overflow: hidden !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    z-index: 10 !important;
 }
 
+/* O texto que vai rolar */
 .scroll {
-    display: inline-block !important;
-    padding-left: 100vw !important; /* Empurra o texto para 100% fora da tela à direita */
+    position: absolute !important;
+    white-space: nowrap !important;
+    top: 50% !important;
+    left: 100% !important; /* Nasce encostado à direita da tela */
+    transform: translateY(-50%) !important; /* Centraliza na vertical */
     animation: rolar-letreiro 15s linear infinite !important;
-    will-change: transform !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    will-change: left, transform !important;
 }
 
+/* A matemática exata de ponta a ponta */
 @keyframes rolar-letreiro {
     0% {
-        transform: translateX(0) !important;
+        left: 100%; 
+        transform: translate(0, -50%); /* Ponto de partida */
     }
     100% {
-        transform: translateX(-100%) !important; /* Arrasta o texto até sumir na esquerda */
+        left: 0; 
+        transform: translate(-100%, -50%); /* Arrasta exatamente 100% da largura do próprio texto para fora da tela */
     }
 }
 
