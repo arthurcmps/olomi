@@ -37,29 +37,31 @@ body {
 main.site-main { flex-grow: 1; padding: 2.5rem 0; }
 
 /* =========================================
-   ANIMAÇÃO DA FAIXA DO TOPO (TEMA)
+   ANIMAÇÃO DA FAIXA DO TOPO (TEMA) - MODO FORÇADO
    ========================================= */
 .top-bar {
-    overflow: hidden; 
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    width: 100%;
+    width: 100vw !important; /* Força a ocupar a largura total do ecrã */
+    max-width: 100% !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    display: block !important; /* Flexbox às vezes espreme o letreiro, block resolve */
+    box-sizing: border-box !important;
+    position: relative !important;
 }
 
 .scroll {
-    display: inline-block;
-    padding-left: 100%; /* Começa exatamente na borda direita da tela */
-    animation: rolar-letreiro 5s linear infinite; /* 15s é uma velocidade de leitura confortável */
-    will-change: transform; /* Deixa o rolar "amanteigado" no telemóvel */
+    display: inline-block !important;
+    padding-left: 100vw !important; /* Empurra o texto para 100% fora da tela à direita */
+    animation: rolar-letreiro 15s linear infinite !important;
+    will-change: transform !important;
 }
 
 @keyframes rolar-letreiro {
     0% {
-        transform: translateX(0); /* Parte da direita (graças ao padding-left acima) */
+        transform: translateX(0) !important;
     }
     100% {
-        transform: translateX(-100%); /* Atravessa a tela inteira e some pela esquerda */
+        transform: translateX(-100%) !important; /* Arrasta o texto até sumir na esquerda */
     }
 }
 
