@@ -7,13 +7,13 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 
 initializeApp();
 
-// --- FUNÇÃO DE CRIAR PEDIDO MANTIDA INTACTA ---
+// --- FUNÇÃO DE CRIAR PEDIDO ---
 exports.createorder = onCall({ region: "southamerica-east1" }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Precisa estar autenticado.');
     const userId = request.auth.uid;
     
-    // 1. RECEBER OS NOVOS DADOS AQUI
-    const { items, customer, shipping } = request.data;
+    // 🔴 CORREÇÃO AQUI: Adicionamos o "cupom" na extração de dados
+    const { items, customer, shipping, cupom } = request.data;
     
     if (!items || items.length === 0) throw new HttpsError('invalid-argument', 'Carrinho vazio.');
 
@@ -59,7 +59,7 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                     // Regras de segurança finais:
                     if (cupomData.ativo && cupomData.usado < cupomData.limiteUso && subtotalAmount >= cupomData.valorMinimo) {
                         valorDesconto = cupom.desconto; 
-                        // 🔴 Dá baixa no cupom: soma +1 no número de vezes usado!
+                        // Dá baixa no cupom: soma +1 no número de vezes usado!
                         transaction.update(cupomRef, { usado: cupomData.usado + 1 }); 
                     }
                 }
@@ -94,7 +94,7 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                             id: orderRef.id,
                             title: 'Compra na Olomi',
                             quantity: 1,
-                            unit_price: Number(orderDetails.total.toFixed(2))
+                            unit_price: Number(valorTotalFinal.toFixed(2))
                         }
                     ],
                     payer: {
@@ -111,7 +111,7 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                 } 
             }); 
 
-            // 👉 Atualiza a base de dados com o link de pagamento
+            // Atualiza a base de dados com o link de pagamento
             transaction.update(orderRef, { paymentUrl: mpResponse.sandbox_init_point }); 
 
             // Retorna o link de pagamento de teste (sandbox) para o site
@@ -141,26 +141,24 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
     let alturaTotal = 0;
     let maiorLargura = 0;
     let maiorComprimento = 0;
-    let valorTotalCarrinho = 0; // 🔴 NOVO: Variável para o Seguro
+    let valorTotalCarrinho = 0; 
 
     items.forEach(item => {
         const qty = item.qty || 1;
         
-        // Medidas
         pesoTotal += (parseFloat(item.weight) || 0.5) * qty;
         alturaTotal += (parseFloat(item.height) || 15) * qty;
         maiorLargura = Math.max(maiorLargura, (parseFloat(item.width) || 20));
         maiorComprimento = Math.max(maiorComprimento, (parseFloat(item.length) || 20));
         
-        // 🔴 NOVO: Soma o preço dos produtos para o seguro
         valorTotalCarrinho += (parseFloat(item.price) || 0) * qty;
     });
 
     const payloadSuperFrete = {
-        from: { postal_code: "21371270" }, // O seu CEP de Origem
+        from: { postal_code: "21371270" }, 
         to: { postal_code: cepDestino.replace(/\D/g, '') },
         services: "1,2", 
-        declared_value: valorTotalCarrinho, // 🔴 NOVO: Envia o valor para a API cobrar o seguro
+        declared_value: valorTotalCarrinho, 
         package: {
             weight: Math.max(0.1, pesoTotal),
             height: Math.max(2, alturaTotal),
@@ -170,7 +168,6 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
     };
     
     try {
-        // NÃO SE ESQUEÇA DO SEU TOKEN AQUI!
         const SUPERFRETE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NzM1MDM0OTEsInN1YiI6IkxFczJNa0kyUENhVVZOZnhhRjhma2FDQ0gyQjMifQ.WeF19JgJWGIHKHdQzN9NVlQ-dp4KQjFHkLY_diHz6IM';
 
         const response = await axios.post(
@@ -202,7 +199,6 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
 
 // --- WEBHOOK DO MERCADO PAGO ---
 exports.webhookpagamento = onRequest(async (req, res) => {
-    // 1. O Mercado Pago envia um POST para avisar de atualizações
     if (req.method !== "POST") {
         return res.status(405).send("Método não permitido");
     }
@@ -210,26 +206,22 @@ exports.webhookpagamento = onRequest(async (req, res) => {
     try {
         const { type, data, action } = req.body;
         
-        // Verifica se é uma notificação de pagamento (o MP tem formatos diferentes dependendo da configuração)
         const isPayment = (type === "payment" || action?.startsWith("payment"));
         const paymentId = data?.id;
 
         if (isPayment && paymentId) {
-            // Usa a sua mesma chave de teste para ler os dados do pagamento
             const client = new MercadoPagoConfig({ accessToken: 'TEST-1703928170803920-022522-76e65d6dea70c0339d6baa69736a623d-230652618' });
             const payment = new Payment(client);
             
-            // Pergunta ao MP: "Quais são os detalhes deste pagamento que você acabou de me avisar?"
             const paymentInfo = await payment.get({ id: paymentId });
             
-            // 2. Se o pagamento estiver APROVADO, atualizamos o banco de dados
             if (paymentInfo.status === "approved") {
-                const orderId = paymentInfo.external_reference; // É aqui que volta o ID do nosso pedido!
+                const orderId = paymentInfo.external_reference; 
                 
                 if (orderId) {
                     const db = getFirestore();
                     await db.collection('orders').doc(orderId).update({
-                        status: 'paid', // 🟢 Muda o status para pago!
+                        status: 'paid', 
                         paymentId: paymentInfo.id,
                         paidAt: Timestamp.now()
                     });
@@ -238,7 +230,6 @@ exports.webhookpagamento = onRequest(async (req, res) => {
             }
         }
         
-        // 3. Regra de ouro dos Webhooks: Sempre responder com 200 OK rapidamente para o MP não achar que o seu servidor caiu
         res.status(200).send("OK");
 
     } catch (error) {
@@ -256,7 +247,6 @@ exports.validarcupom = onCall({ region: "southamerica-east1" }, async (request) 
     }
 
     const db = getFirestore();
-    // Procura o cupom no banco (convertendo para maiúsculas por segurança)
     const cupomRef = db.collection('coupons').doc(codigo.toUpperCase());
     const cupomSnap = await cupomRef.get();
 
@@ -266,27 +256,22 @@ exports.validarcupom = onCall({ region: "southamerica-east1" }, async (request) 
 
     const cupom = cupomSnap.data();
 
-    // 1. Verifica se está ativo
     if (cupom.ativo === false) {
         throw new HttpsError('failed-precondition', 'Este cupom está desativado.');
     }
 
-    // 2. Verifica o limite de uso
     if (cupom.usado >= cupom.limiteUso) {
         throw new HttpsError('failed-precondition', 'Este cupom já atingiu o limite de usos.');
     }
 
-    // 3. Verifica o valor mínimo da compra
     if (subtotal < cupom.valorMinimo) {
         throw new HttpsError('failed-precondition', `O valor mínimo para usar este cupom é R$ ${cupom.valorMinimo.toFixed(2)}.`);
     }
 
-    // 4. Verifica a validade (se o campo validade existir)
     if (cupom.validade && cupom.validade.toDate() < new Date()) {
         throw new HttpsError('failed-precondition', 'Este cupom já expirou.');
     }
 
-    // 5. Calcula o valor exato do desconto
     let valorDesconto = 0;
     if (cupom.tipo === 'fixo') {
         valorDesconto = parseFloat(cupom.valor);
@@ -294,7 +279,6 @@ exports.validarcupom = onCall({ region: "southamerica-east1" }, async (request) 
         valorDesconto = subtotal * (parseFloat(cupom.valor) / 100);
     }
 
-    // Retorna o sucesso para o Frontend!
     return {
         codigo: cupomSnap.id,
         desconto: valorDesconto,
