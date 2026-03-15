@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
   <script type="module" src="./js/main.js?v=3.0" defer></script>
-  <script type="module" src="./js/admin.js?v=2.0" defer></script>
+  <script type="module" src="./js/admin.js?v=2.1" defer></script>
 </head>
 <body>
   <main class="site-main">
@@ -214,6 +214,13 @@
 
       <section class="admin-section">
         <h2 class="admin-section-title">Pedidos Recebidos</h2>
+        
+        <div class="search-bar-container" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <input type="text" id="search-order-text" placeholder="Buscar por ID ou Nome do Cliente..." style="flex: 1; min-width: 250px; padding: 0.8rem 1rem; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; font-family: var(--fonte-corpo);" />
+          
+          <input type="date" id="search-order-date" style="padding: 0.8rem 1rem; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; font-family: var(--fonte-corpo); color: #555; cursor: pointer;" title="Filtrar por data exata" />
+        </div>
+
         <div class="table-container">
           <table id="orders-table" class="admin-table">
             <thead>

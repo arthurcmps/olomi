@@ -560,3 +560,52 @@ if (couponForm && couponsTableBody) {
         });
     });
 }
+
+// ==========================================
+// 7. SISTEMA DE BUSCA E FILTRO DE PEDIDOS
+// ==========================================
+const searchOrderText = document.getElementById('search-order-text');
+const searchOrderDate = document.getElementById('search-order-date');
+
+function filterOrders() {
+    // Pega o que foi digitado e transforma tudo em minúsculas
+    const textValue = searchOrderText.value.toLowerCase().trim();
+    
+    // Converte a data do calendário (YYYY-MM-DD) para o formato da tabela (DD/MM/YYYY)
+    let dateValue = searchOrderDate.value; 
+    if (dateValue) {
+        const [year, month, day] = dateValue.split('-');
+        dateValue = `${day}/${month}/${year}`;
+    }
+
+    // Pega todas as linhas de resumo de pedidos
+    const rows = document.querySelectorAll('.order-summary-row');
+    
+    rows.forEach(row => {
+        const idText = row.cells[0].textContent.toLowerCase();
+        const nameText = row.cells[1].textContent.toLowerCase();
+        const dateText = row.cells[2].textContent; 
+
+        // Verifica se a linha bate com a busca
+        const matchesText = idText.includes(textValue) || nameText.includes(textValue);
+        const matchesDate = dateValue === "" || dateText.includes(dateValue);
+
+        // Identifica a linha de detalhes que fica logo abaixo
+        const detailsRow = row.nextElementSibling; 
+
+        if (matchesText && matchesDate) {
+            row.style.display = 'table-row'; // Mostra o pedido
+        } else {
+            row.style.display = 'none'; // Esconde o pedido
+            if (detailsRow && detailsRow.classList.contains('order-details-row')) {
+                detailsRow.style.display = 'none'; 
+            }
+        }
+    });
+}
+
+// Escuta os eventos: filtra automaticamente quando digita ou escolhe a data
+if (searchOrderText && searchOrderDate) {
+    searchOrderText.addEventListener('input', filterOrders);
+    searchOrderDate.addEventListener('input', filterOrders);
+}
