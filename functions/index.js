@@ -8,11 +8,11 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 initializeApp();
 
 // --- FUNÇÃO DE CRIAR PEDIDO ---
+// --- FUNÇÃO DE CRIAR PEDIDO ---
 exports.createorder = onCall({ region: "southamerica-east1" }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Precisa estar autenticado.');
     const userId = request.auth.uid;
     
-    // 🔴 CORREÇÃO AQUI: Adicionamos o "cupom" na extração de dados
     const { items, customer, shipping, cupom } = request.data;
     
     if (!items || items.length === 0) throw new HttpsError('invalid-argument', 'Carrinho vazio.');
@@ -22,8 +22,25 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
 
     try {
         const result = await db.runTransaction(async (transaction) => {
+            
+            // ==========================================
+            // FASE 1: APENAS LEITURAS (READS)
+            // ==========================================
             const productRefs = items.map(item => db.collection('products').doc(item.id));
             const productDocs = await transaction.getAll(...productRefs);
+            
+            let cupomDoc = null;
+            let cupomRef = null;
+            
+            // Lemos o cupom AQUI EM CIMA antes de qualquer escrita
+            if (cupom && cupom.codigo) {
+                cupomRef = db.collection('coupons').doc(cupom.codigo);
+                cupomDoc = await transaction.get(cupomRef);
+            }
+
+            // ==========================================
+            // FASE 2: LÓGICA DE NEGÓCIO E MATEMÁTICA
+            // ==========================================
             const itemsForOrder = [];
             const stockUpdates = [];
 
@@ -39,29 +56,20 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                 itemsForOrder.push({
                     id: productDoc.id, name: productData.name, price: productData.price, qty: requestedQty
                 });
+                
+                // Em vez de atualizar o stock agora, apenas guardamos a intenção
                 stockUpdates.push({ ref: productDoc.ref, newStock: productData.stock - requestedQty });
             }
 
-            stockUpdates.forEach(update => transaction.update(update.ref, { stock: update.newStock }));
-            const orderRef = db.collection('orders').doc();
-            
-            // 2. ESTRUTURAR O DOCUMENTO COMPLETO PARA GUARDAR NA BASE DE DADOS
             const freteCusto = shipping && shipping.cost ? shipping.cost : 0;
             let valorDesconto = 0;
+            let cupomValidoParaUso = false;
 
-            // Se o cliente mandou um cupom, vamos checar no banco de dados de novo!
-            if (cupom && cupom.codigo) {
-                const cupomRef = db.collection('coupons').doc(cupom.codigo);
-                const cupomDoc = await transaction.get(cupomRef);
-                
-                if (cupomDoc.exists) {
-                    const cupomData = cupomDoc.data();
-                    // Regras de segurança finais:
-                    if (cupomData.ativo && cupomData.usado < cupomData.limiteUso && subtotalAmount >= cupomData.valorMinimo) {
-                        valorDesconto = cupom.desconto; 
-                        // Dá baixa no cupom: soma +1 no número de vezes usado!
-                        transaction.update(cupomRef, { usado: cupomData.usado + 1 }); 
-                    }
+            if (cupomDoc && cupomDoc.exists) {
+                const cupomData = cupomDoc.data();
+                if (cupomData.ativo && cupomData.usado < cupomData.limiteUso && subtotalAmount >= cupomData.valorMinimo) {
+                    valorDesconto = cupom.desconto; 
+                    cupomValidoParaUso = true;
                 }
             }
 
@@ -70,12 +78,28 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
             const orderDetails = { 
                 items: itemsForOrder, 
                 subtotal: subtotalAmount,
-                desconto: valorDesconto, // Guarda no pedido o quanto ele ganhou de desconto
+                desconto: valorDesconto, 
                 shipping: shipping || { method: 'Nenhum', cost: 0 },
-                total: valorTotalFinal, // O valor final abatido
+                total: valorTotalFinal,
                 customer: customer || {} 
             };
 
+            const orderRef = db.collection('orders').doc();
+
+            // ==========================================
+            // FASE 3: APENAS ESCRITAS (WRITES)
+            // ==========================================
+            
+            // A. Atualiza o stock de todos os produtos
+            stockUpdates.forEach(update => transaction.update(update.ref, { stock: update.newStock }));
+            
+            // B. Dá baixa no uso do cupom (se validado)
+            if (cupomValidoParaUso) {
+                const cupomData = cupomDoc.data();
+                transaction.update(cupomRef, { usado: cupomData.usado + 1 });
+            }
+
+            // C. Cria o pedido inicial no banco
             transaction.set(orderRef, { 
                 userId, 
                 ...orderDetails, 
@@ -83,7 +107,9 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                 createdAt: Timestamp.now() 
             });
             
-            // --- INTEGRAÇÃO MERCADO PAGO ---
+            // ==========================================
+            // INTEGRAÇÃO MERCADO PAGO 
+            // ==========================================
             const client = new MercadoPagoConfig({ accessToken: 'TEST-1703928170803920-022522-76e65d6dea70c0339d6baa69736a623d-230652618' });
             const preference = new Preference(client);
 
@@ -111,10 +137,9 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                 } 
             }); 
 
-            // Atualiza a base de dados com o link de pagamento
+            // D. Atualiza o pedido com o link de pagamento
             transaction.update(orderRef, { paymentUrl: mpResponse.sandbox_init_point }); 
 
-            // Retorna o link de pagamento de teste (sandbox) para o site
             return { 
                 orderId: orderRef.id, 
                 orderDetails, 
