@@ -1,9 +1,8 @@
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js';
-import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, deleteDoc, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js';
+import { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 import { BRL, showToast, showConfirmation } from './utils.js';
 import { getStorage, ref, deleteObject, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
-import { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 // ==========================================
 // 1. CONFIGURAÇÕES INICIAIS E COMPRESSÃO
