@@ -136,11 +136,20 @@ const loadOrders = () => {
             const shipping = order.shipping || { method: 'Nenhum', cost: 0 };
             const formattedAddress = address.street ? `${address.street}, ${address.number} ${address.complement ? '- ' + address.complement : ''}<br>${address.neighborhood}, ${address.city} - ${address.state}<br>CEP: ${address.cep}` : (order.customer?.fullAddress || 'Endereço não fornecido');
 
+            // 🟢 NOVO: Lógica para mostrar o desconto na linha de resumo
+            const descontoHTML = order.desconto && order.desconto > 0 
+                ? `<br><small style="color: #2ecc71; font-weight: bold;">Desconto: -${BRL(order.desconto)}</small>` 
+                : '';
+
             tr.innerHTML = `
                 <td><strong>#${orderId.substring(0, 6)}</strong></td>
                 <td><strong>${customer.name || 'Cliente (Sem Nome)'}</strong><br><small>📱 ${customer.phone || 'Sem telefone'}</small></td>
                 <td>${orderDate}</td>
-                <td><strong>${BRL(order.total)}</strong><br><small style="color: #666;">Frete: ${shipping.method} (${BRL(shipping.cost)})</small></td>
+                <td>
+                    <strong>${BRL(order.total)}</strong><br>
+                    <small style="color: #666;">Frete: ${shipping.method} (${BRL(shipping.cost)})</small>
+                    ${descontoHTML}
+                </td>
                 <td><span class="status ${statusInfo.class}">${statusInfo.text}</span></td>
                 <td class="order-actions">${(order.status === 'pending' || order.status === 'paid') ? `<button class="action-btn ship" data-id="${orderId}">Marcar Enviado</button><button class="action-btn cancel" data-id="${orderId}">Cancelar</button>` : ''}</td>
             `;
@@ -150,13 +159,23 @@ const loadOrders = () => {
             detailsTr.style.display = 'none';
             const itemsHtml = order.items.map(item => `<li>${item.qty}x ${item.name} (${BRL(item.price)})</li>`).join('');
 
+            // 🟢 NOVO: Lógica para mostrar o desconto nos detalhes (gaveta)
+            const descontoDetailsHTML = order.desconto && order.desconto > 0 
+                ? `<p style="color: #2ecc71;"><strong>Desconto:</strong> -${BRL(order.desconto)}</p>` 
+                : '';
+
             detailsTr.innerHTML = `
                 <td colspan="6">
                     <div class="order-details-content" style="display: flex; gap: 2rem; text-align: left; padding: 1rem; background-color: #f9f9f9; border-radius: 8px;">
                         <div style="flex: 1;"><p><strong>ID do Pedido:</strong> ${orderId}</p><p><strong>Data:</strong> ${order.createdAt?.toDate().toLocaleString('pt-BR')}</p><p><strong>Email:</strong> ${customer.email || 'Não informado'}</p>
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;"><strong>Endereço de Entrega:</strong><br><span style="color: var(--cor-secundaria);">${formattedAddress}</span></div></div>
                         <div style="flex: 1;"><strong>Itens:</strong><ul style="margin-top: 0.5rem; padding-left: 1.2rem;">${itemsHtml}</ul>
-                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;"><p><strong>Subtotal:</strong> ${BRL(order.subtotal || 0)}</p><p><strong>Frete:</strong> ${BRL(shipping.cost)}</p><p style="font-size: 1.1rem; color: var(--cor-laranja);"><strong>Total: ${BRL(order.total)}</strong></p></div></div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+                            <p><strong>Subtotal:</strong> ${BRL(order.subtotal || 0)}</p>
+                            <p><strong>Frete:</strong> ${BRL(shipping.cost)}</p>
+                            ${descontoDetailsHTML}
+                            <p style="font-size: 1.1rem; color: var(--cor-laranja);"><strong>Total: ${BRL(order.total)}</strong></p>
+                        </div></div>
                     </div>
                 </td>
             `;
