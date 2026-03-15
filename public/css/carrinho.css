@@ -163,3 +163,40 @@
         align-items: flex-start;
     }
 }
+
+/* =========================================
+   📱 RESPONSIVIDADE DO CARRINHO (MOBILE)
+   ========================================= */
+@media (max-width: 768px) {
+    /* Impede que qualquer elemento do carrinho passe do limite da tela */
+    .cart-items-column, .cart-summary-column {
+        padding: 1.5rem 1rem;
+    }
+
+    /* Reorganiza a linha do produto: Foto + Nome em cima, Preço + Lixeira em baixo */
+    .cart-item {
+        grid-template-columns: 70px 1fr;
+        gap: 1rem;
+    }
+
+    /* O preço e o botão de remover vão para a linha de baixo, ocupando tudo */
+    .item-price {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.5rem;
+        padding-top: 1rem;
+        border-top: 1px dashed #eee;
+        text-align: left;
+    }
+
+    .item-actions {
+        text-align: right;
+    }
+
+    /* Os campos de endereço (Número e Complemento) ficam um debaixo do outro */
+    .checkout-form .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
