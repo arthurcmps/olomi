@@ -78,7 +78,7 @@ async function applyStoreTheme() {
         if (themeSnap.exists()) {
             const theme = themeSnap.data();
             
-            // 1. Mudar a Cor Principal (Força Bruta CSS)
+            // 1. Mudar a Cor Principal e INJETAR AS ANIMAÇÕES
             if (theme.primaryColor) {
                 document.documentElement.style.setProperty('--cor-laranja', theme.primaryColor);
                 document.documentElement.style.setProperty('--cor-laranja-hover', theme.primaryColor + 'dd');
@@ -104,17 +104,49 @@ async function applyStoreTheme() {
                     .nav-link:hover, .cart-link:hover { color: #ffffff !important; }
                     .product-price-large { color: ${theme.primaryColor} !important; }
                     .login-form legend { border-bottom-color: ${theme.primaryColor} !important; }
+
+                    /* --- NOVAS ANIMAÇÕES DA FAIXA --- */
+                    @keyframes blink-anim {
+                        0% { opacity: 1; }
+                        50% { opacity: 0.2; }
+                        100% { opacity: 1; }
+                    }
+                    @keyframes scroll-anim {
+                        0% { transform: translateX(100%); }
+                        100% { transform: translateX(-100%); }
+                    }
+                    .faixa-blink { animation: blink-anim 1.5s infinite ease-in-out; }
+                    .faixa-scroll {
+                        display: inline-block;
+                        white-space: nowrap;
+                        animation: scroll-anim 15s linear infinite;
+                    }
                 `;
             }
 
-            // 2. Adicionar a Faixa de Anúncio
+            // 2. Adicionar a Faixa de Anúncio COM ANIMAÇÃO
             if (theme.topBarMessage && theme.topBarMessage.trim() !== '') {
                 if (!document.getElementById('dynamic-top-bar')) {
-                    const topBar = document.createElement('div');
-                    topBar.id = 'dynamic-top-bar';
-                    topBar.style.cssText = `background-color: var(--cor-laranja); color: white; text-align: center; padding: 8px 15px; font-size: 0.9rem; font-weight: bold; width: 100%; z-index: 1000;`;
-                    topBar.textContent = theme.topBarMessage;
-                    document.body.insertBefore(topBar, document.body.firstChild);
+                    // O Container escuro (que fica parado)
+                    const topBarContainer = document.createElement('div');
+                    topBarContainer.id = 'dynamic-top-bar';
+                    topBarContainer.style.cssText = `background-color: var(--cor-laranja); color: white; text-align: center; padding: 8px 15px; font-size: 0.9rem; font-weight: bold; width: 100%; z-index: 1000; overflow: hidden;`;
+                    
+                    // O Texto que vai ser animado
+                    const textSpan = document.createElement('div');
+                    textSpan.textContent = theme.topBarMessage;
+
+                    // Aplica a classe de animação dependendo da escolha do banco de dados
+                    if (theme.topBarAnimation === 'blink') {
+                        textSpan.className = 'faixa-blink';
+                    } else if (theme.topBarAnimation === 'scroll') {
+                        textSpan.className = 'faixa-scroll';
+                        topBarContainer.style.textAlign = 'left'; // Necessário para o scroll funcionar bem
+                    }
+
+                    // Junta tudo e coloca no topo do site
+                    topBarContainer.appendChild(textSpan);
+                    document.body.insertBefore(topBarContainer, document.body.firstChild);
                 }
             }
 

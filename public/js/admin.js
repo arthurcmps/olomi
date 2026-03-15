@@ -70,6 +70,7 @@ async function loadThemeSettings() {
             const data = themeSnap.data();
             if(data.primaryColor && themeForm) themeForm.themeColor.value = data.primaryColor;
             if(data.topBarMessage && themeForm) themeForm.topBarText.value = data.topBarMessage;
+            if(data.topBarAnimation && themeForm) themeForm.topBarAnimation.value = data.topBarAnimation; // <-- LINHA NOVA
             if(data.logoUrl && currentLogoImg) currentLogoImg.src = data.logoUrl;
         }
     } catch (error) {
@@ -233,6 +234,7 @@ if (themeForm) {
             const themeData = {
                 primaryColor: themeForm.themeColor.value,
                 topBarMessage: themeForm.topBarText.value,
+                topBarAnimation: themeForm.topBarAnimation.value, // <-- LINHA NOVA
                 updatedAt: new Date()
             };
 
