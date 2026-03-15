@@ -168,35 +168,48 @@
    📱 RESPONSIVIDADE DO CARRINHO (MOBILE)
    ========================================= */
 @media (max-width: 768px) {
-    /* Impede que qualquer elemento do carrinho passe do limite da tela */
+    /* 1. Impede vazamento nas colunas */
     .cart-items-column, .cart-summary-column {
-        padding: 1.5rem 1rem;
+        padding: 1.2rem 1rem;
+        width: 100%;
+        overflow: hidden;
     }
 
-    /* Reorganiza a linha do produto: Foto + Nome em cima, Preço + Lixeira em baixo */
+    /* 2. O Bug do Fieldset (Formulário) */
+    fieldset {
+        min-width: 0; /* Corrige o bug nativo do HTML em telemóveis */
+        padding: 10px;
+        width: 100%;
+    }
+
+    /* 3. Evita que nomes gigantes de produtos quebrem a tela */
+    .item-name {
+        word-break: break-word;
+        font-size: 0.95rem;
+    }
+
+    /* 4. Reorganiza a linha do produto */
     .cart-item {
-        grid-template-columns: 70px 1fr;
-        gap: 1rem;
+        grid-template-columns: 70px 1fr !important;
+        gap: 0.8rem;
     }
 
-    /* O preço e o botão de remover vão para a linha de baixo, ocupando tudo */
-    .item-price {
+    /* 5. Joga o preço, botões de quantidade e lixeira para a linha de baixo */
+    .item-actions {
         grid-column: 1 / -1;
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
         margin-top: 0.5rem;
-        padding-top: 1rem;
-        border-top: 1px dashed #eee;
-        text-align: left;
+        padding-top: 0.8rem;
+        border-top: 1px dashed #ddd;
+        width: 100%;
     }
 
-    .item-actions {
-        text-align: right;
-    }
-
-    /* Os campos de endereço (Número e Complemento) ficam um debaixo do outro */
+    /* 6. Os campos de endereço (Número e Complemento) ficam um por linha */
     .checkout-form .form-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
 }
