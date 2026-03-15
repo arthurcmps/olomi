@@ -136,9 +136,10 @@ const loadOrders = () => {
             const shipping = order.shipping || { method: 'Nenhum', cost: 0 };
             const formattedAddress = address.street ? `${address.street}, ${address.number} ${address.complement ? '- ' + address.complement : ''}<br>${address.neighborhood}, ${address.city} - ${address.state}<br>CEP: ${address.cep}` : (order.customer?.fullAddress || 'Endereço não fornecido');
 
-            // 🟢 NOVO: Lógica para mostrar o desconto na linha de resumo
+            // 🟢 Puxa o nome do cupom (se existir) e junta ao HTML
+            const nomeCupom = order.cupomUsado ? ` (${order.cupomUsado})` : '';
             const descontoHTML = order.desconto && order.desconto > 0 
-                ? `<br><small style="color: #2ecc71; font-weight: bold;">Desconto: -${BRL(order.desconto)}</small>` 
+                ? `<br><small style="color: #2ecc71; font-weight: bold;">Desconto${nomeCupom}: -${BRL(order.desconto)}</small>` 
                 : '';
 
             tr.innerHTML = `
@@ -159,9 +160,9 @@ const loadOrders = () => {
             detailsTr.style.display = 'none';
             const itemsHtml = order.items.map(item => `<li>${item.qty}x ${item.name} (${BRL(item.price)})</li>`).join('');
 
-            // 🟢 NOVO: Lógica para mostrar o desconto nos detalhes (gaveta)
+            // 🟢 Mostra também na aba de detalhes expansível
             const descontoDetailsHTML = order.desconto && order.desconto > 0 
-                ? `<p style="color: #2ecc71;"><strong>Desconto:</strong> -${BRL(order.desconto)}</p>` 
+                ? `<p style="color: #2ecc71;"><strong>Desconto${nomeCupom}:</strong> -${BRL(order.desconto)}</p>` 
                 : '';
 
             detailsTr.innerHTML = `

@@ -79,6 +79,7 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
                 items: itemsForOrder, 
                 subtotal: subtotalAmount,
                 desconto: valorDesconto, 
+                cupomUsado: cupomValidoParaUso ? cupom.codigo : null,
                 shipping: shipping || { method: 'Nenhum', cost: 0 },
                 total: valorTotalFinal,
                 customer: customer || {} 
