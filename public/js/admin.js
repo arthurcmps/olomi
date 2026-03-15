@@ -1,6 +1,7 @@
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js';
-import { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+// 🔴 CORREÇÃO: Importação única e limpa (juntámos o setDoc aqui)
+import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, deleteDoc, orderBy, query, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js';
 import { BRL, showToast, showConfirmation } from './utils.js';
 import { getStorage, ref, deleteObject, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
 
@@ -57,7 +58,7 @@ const currentLogoImg = document.getElementById('current-logo-img');
 let selectedLogoFile = null;
 
 // ==========================================
-// 3. FUNÇÕES DE CARREGAMENTO (Definidas antes do uso)
+// 3. FUNÇÕES DE CARREGAMENTO
 // ==========================================
 
 // -> Carregar Tema
@@ -70,7 +71,7 @@ async function loadThemeSettings() {
             const data = themeSnap.data();
             if(data.primaryColor && themeForm) themeForm.themeColor.value = data.primaryColor;
             if(data.topBarMessage && themeForm) themeForm.topBarText.value = data.topBarMessage;
-            if(data.topBarAnimation && themeForm) themeForm.topBarAnimation.value = data.topBarAnimation; // <-- LINHA NOVA
+            if(data.topBarAnimation && themeForm) themeForm.topBarAnimation.value = data.topBarAnimation;
             if(data.logoUrl && currentLogoImg) currentLogoImg.src = data.logoUrl;
         }
     } catch (error) {
@@ -181,7 +182,6 @@ onAuthStateChanged(auth, async (user) => {
             showToast('Acesso negado. Apenas administradores.', 'error');
             setTimeout(() => window.location.href = 'index.html', 2000);
         } else {
-            // Como as funções foram definidas no topo, NUNCA darão erro aqui!
             loadProducts();
             loadOrders();
             loadThemeSettings();
@@ -209,7 +209,7 @@ if (logoContainer && logoInput) {
     });
 }
 
-// -> Formulário de Temas (Salvar Cor, Texto e Logo)
+// -> Formulário de Temas
 if (themeForm) {
     const btnSubmit = themeForm.querySelector('button');
     if (btnSubmit) btnSubmit.textContent = 'Salvar Tema da Loja';
@@ -234,7 +234,7 @@ if (themeForm) {
             const themeData = {
                 primaryColor: themeForm.themeColor.value,
                 topBarMessage: themeForm.topBarText.value,
-                topBarAnimation: themeForm.topBarAnimation.value, // <-- LINHA NOVA
+                topBarAnimation: themeForm.topBarAnimation.value,
                 updatedAt: new Date()
             };
 
@@ -244,7 +244,6 @@ if (themeForm) {
 
             await updateDoc(themeRef, themeData).catch(async (err) => {
                 if(err.code === 'not-found') {
-                    const { setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
                     await setDoc(themeRef, themeData);
                 } else throw err;
             });
@@ -267,188 +266,196 @@ if (themeForm) {
 }
 
 // -> Upload de Imagens do Produto (Preview)
-imageUpload.addEventListener('change', (e) => {
-    imagePreviewContainer.innerHTML = '';
-    Array.from(e.target.files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = document.createElement('img');
-            img.src = event.target.result;
-            imagePreviewContainer.appendChild(img);
-        };
-        reader.readAsDataURL(file);
+if(imageUpload) {
+    imageUpload.addEventListener('change', (e) => {
+        imagePreviewContainer.innerHTML = '';
+        Array.from(e.target.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                imagePreviewContainer.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
     });
-});
+}
 
-// -> Tabela de Pedidos (Enviar, Cancelar e Expandir)
-ordersTableBody.addEventListener('click', async (e) => {
-    const actionButton = e.target.closest('.action-btn');
-    const summaryRow = e.target.closest('.order-summary-row');
+// -> Tabela de Pedidos
+if(ordersTableBody) {
+    ordersTableBody.addEventListener('click', async (e) => {
+        const actionButton = e.target.closest('.action-btn');
+        const summaryRow = e.target.closest('.order-summary-row');
 
-    if (actionButton) {
-        e.stopPropagation();
-        const id = actionButton.getAttribute('data-id');
-        const orderRef = doc(db, 'orders', id);
+        if (actionButton) {
+            e.stopPropagation();
+            const id = actionButton.getAttribute('data-id');
+            const orderRef = doc(db, 'orders', id);
 
-        if (actionButton.classList.contains('ship')) {
-            if (await showConfirmation('Marcar como Enviado?', 'O estado do pedido será alterado para "Enviado".', 'Sim, enviar')) {
-                await updateDoc(orderRef, { status: 'shipped' });
-                showToast('Pedido marcado como enviado!', 'success');
+            if (actionButton.classList.contains('ship')) {
+                if (await showConfirmation('Marcar como Enviado?', 'O estado do pedido será alterado para "Enviado".', 'Sim, enviar')) {
+                    await updateDoc(orderRef, { status: 'shipped' });
+                    showToast('Pedido marcado como enviado!', 'success');
+                }
+            } else if (actionButton.classList.contains('cancel')) {
+                if (await showConfirmation('Cancelar este Pedido?', 'Esta ação não pode ser revertida.', 'Sim, cancelar')) {
+                    await updateDoc(orderRef, { status: 'cancelled' });
+                    showToast('Pedido cancelado.', 'info');
+                }
             }
-        } else if (actionButton.classList.contains('cancel')) {
-            if (await showConfirmation('Cancelar este Pedido?', 'Esta ação não pode ser revertida.', 'Sim, cancelar')) {
-                await updateDoc(orderRef, { status: 'cancelled' });
-                showToast('Pedido cancelado.', 'info');
+        } else if (summaryRow) {
+            const detailsRow = summaryRow.nextElementSibling;
+            if (detailsRow?.classList.contains('order-details-row')) {
+                detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
             }
         }
-    } else if (summaryRow) {
-        const detailsRow = summaryRow.nextElementSibling;
-        if (detailsRow?.classList.contains('order-details-row')) {
-            detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
-        }
-    }
-});
+    });
+}
 
-// -> Tabela de Produtos (Editar e Apagar)
-productsTableBody.addEventListener('click', async (e) => {
-    const target = e.target.closest('.action-btn-icon');
-    if (!target) return;
-    const id = target.getAttribute('data-id');
+// -> Tabela de Produtos
+if(productsTableBody) {
+    productsTableBody.addEventListener('click', async (e) => {
+        const target = e.target.closest('.action-btn-icon');
+        if (!target) return;
+        const id = target.getAttribute('data-id');
 
-    if (target.classList.contains('delete')) {
-        if (await showConfirmation('Tem a certeza?', 'O produto será apagado permanentemente.', 'Sim, apagar')) {
-            try {
-                const productRef = doc(db, 'products', id);
-                const productSnap = await getDoc(productRef);
-                if(productSnap.exists()) {
-                    const productData = productSnap.data();
-                    if (productData.imageUrls && productData.imageUrls.length > 0) {
-                        for (const url of productData.imageUrls) {
-                            await deleteObject(ref(storage, url)).catch(() => {});
+        if (target.classList.contains('delete')) {
+            if (await showConfirmation('Tem a certeza?', 'O produto será apagado permanentemente.', 'Sim, apagar')) {
+                try {
+                    const productRef = doc(db, 'products', id);
+                    const productSnap = await getDoc(productRef);
+                    if(productSnap.exists()) {
+                        const productData = productSnap.data();
+                        if (productData.imageUrls && productData.imageUrls.length > 0) {
+                            for (const url of productData.imageUrls) {
+                                await deleteObject(ref(storage, url)).catch(() => {});
+                            }
                         }
                     }
+                    await deleteDoc(productRef);
+                    showToast('Produto apagado com sucesso!');
+                    if (currentEditingProductId === id) {
+                        productForm.reset();
+                        imagePreviewContainer.innerHTML = '';
+                        currentEditingProductId = null;
+                        productForm.querySelector('button[type="submit"]').textContent = 'Salvar Produto';
+                    }
+                } catch (error) {
+                    showToast('Falha ao apagar o produto.', 'error');
                 }
-                await deleteDoc(productRef);
-                showToast('Produto apagado com sucesso!');
-                if (currentEditingProductId === id) {
-                    productForm.reset();
-                    imagePreviewContainer.innerHTML = '';
-                    currentEditingProductId = null;
-                    productForm.querySelector('button[type="submit"]').textContent = 'Salvar Produto';
-                }
-            } catch (error) {
-                showToast('Falha ao apagar o produto.', 'error');
             }
         }
-    }
 
-    if (target.classList.contains('edit')) {
-        const productRef = doc(db, 'products', id);
-        const productSnap = await getDoc(productRef);
-        const product = productSnap.data();
+        if (target.classList.contains('edit')) {
+            const productRef = doc(db, 'products', id);
+            const productSnap = await getDoc(productRef);
+            const product = productSnap.data();
 
-        productForm.name.value = product.name;
-        productForm.description.value = product.description;
-        productForm.price.value = product.price;
-        productForm.promoPrice.value = product.promotionalPrice || '';
-        productForm.stock.value = product.stock;
-        productForm.category.value = product.category;
-        productForm.weight.value = product.weight || '';
-        productForm.length.value = product.length || '';
-        productForm.width.value = product.width || '';
-        productForm.height.value = product.height || '';
+            productForm.name.value = product.name;
+            productForm.description.value = product.description;
+            productForm.price.value = product.price;
+            productForm.promoPrice.value = product.promotionalPrice || '';
+            productForm.stock.value = product.stock;
+            productForm.category.value = product.category;
+            productForm.weight.value = product.weight || '';
+            productForm.length.value = product.length || '';
+            productForm.width.value = product.width || '';
+            productForm.height.value = product.height || '';
 
-        imagePreviewContainer.innerHTML = '';
-        if (product.imageUrls && product.imageUrls.length > 0) {
-            product.imageUrls.forEach(url => {
-                const img = document.createElement('img');
-                img.src = url;
-                imagePreviewContainer.appendChild(img);
-            });
+            imagePreviewContainer.innerHTML = '';
+            if (product.imageUrls && product.imageUrls.length > 0) {
+                product.imageUrls.forEach(url => {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    imagePreviewContainer.appendChild(img);
+                });
+            }
+
+            currentEditingProductId = id;
+            existingImageUrls = product.imageUrls || [];
+            productForm.querySelector('button[type="submit"]').textContent = 'Atualizar Produto';
+            window.scrollTo(0, 0);
         }
-
-        currentEditingProductId = id;
-        existingImageUrls = product.imageUrls || [];
-        productForm.querySelector('button[type="submit"]').textContent = 'Atualizar Produto';
-        window.scrollTo(0, 0);
-    }
-});
+    });
+}
 
 // -> Salvar Produto
-productForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const submitButton = productForm.querySelector('button[type="submit"]');
-    const isEditing = !!currentEditingProductId;
-    submitButton.disabled = true;
-    submitButton.textContent = isEditing ? 'Atualizando...' : 'Salvando...';
+if(productForm) {
+    productForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitButton = productForm.querySelector('button[type="submit"]');
+        const isEditing = !!currentEditingProductId;
+        submitButton.disabled = true;
+        submitButton.textContent = isEditing ? 'Atualizando...' : 'Salvando...';
 
-    try {
-        let imageUrls = existingImageUrls;
-        const files = imageUpload.files;
+        try {
+            let imageUrls = existingImageUrls;
+            const files = imageUpload.files;
 
-        if (files.length > 0) {
-            const novasImagens = [];
-            for (const file of Array.from(files)) {
-                const compressedBlob = await compressImage(file, 800, 0.8);
-                const novoNome = file.name.replace(/\.[^/.]+$/, "") + ".webp";
-                const fileRef = ref(storage, `products/${Date.now()}_${novoNome}`);
-                const snapshot = await uploadBytes(fileRef, compressedBlob, { contentType: 'image/webp' });                
-                novasImagens.push(await getDownloadURL(snapshot.ref));
-            }
-            imageUrls = novasImagens;
+            if (files.length > 0) {
+                const novasImagens = [];
+                for (const file of Array.from(files)) {
+                    const compressedBlob = await compressImage(file, 800, 0.8);
+                    const novoNome = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+                    const fileRef = ref(storage, `products/${Date.now()}_${novoNome}`);
+                    const snapshot = await uploadBytes(fileRef, compressedBlob, { contentType: 'image/webp' });                
+                    novasImagens.push(await getDownloadURL(snapshot.ref));
+                }
+                imageUrls = novasImagens;
 
-            if (isEditing && existingImageUrls.length > 0) {
-                 for (const url of existingImageUrls) {
-                    await deleteObject(ref(storage, url)).catch(() => {});
+                if (isEditing && existingImageUrls.length > 0) {
+                     for (const url of existingImageUrls) {
+                        await deleteObject(ref(storage, url)).catch(() => {});
+                    }
                 }
             }
+
+            const productData = {
+                name: productForm.name.value,
+                description: productForm.description.value,
+                price: parseFloat(productForm.price.value.replace(',', '.')),
+                promotionalPrice: parseFloat(productForm.promoPrice.value) || null,
+                stock: parseInt(productForm.stock.value),
+                category: productForm.category.value,
+                weight: parseFloat(productForm.weight.value) || 0,
+                length: parseInt(productForm.length.value) || 0,
+                width: parseInt(productForm.width.value) || 0,
+                height: parseInt(productForm.height.value) || 0,
+                imageUrls: imageUrls
+            };
+
+            if (isEditing) {
+                await updateDoc(doc(db, 'products', currentEditingProductId), productData);
+                showToast('Produto atualizado com sucesso!', 'success');
+            } else {
+                await addDoc(collection(db, 'products'), { ...productData, createdAt: new Date() });
+                showToast('Produto adicionado com sucesso!', 'success');
+            }
+
+            productForm.reset();
+            imagePreviewContainer.innerHTML = '';
+            currentEditingProductId = null;
+            existingImageUrls = [];
+
+        } catch (error) {
+            showToast(`Falha ao salvar produto`, 'error');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Salvar Produto';
+            imageUpload.value = '';
         }
-
-        const productData = {
-            name: productForm.name.value,
-            description: productForm.description.value,
-            price: parseFloat(productForm.price.value.replace(',', '.')),
-            promotionalPrice: parseFloat(productForm.promoPrice.value) || null,
-            stock: parseInt(productForm.stock.value),
-            category: productForm.category.value,
-            weight: parseFloat(productForm.weight.value) || 0,
-            length: parseInt(productForm.length.value) || 0,
-            width: parseInt(productForm.width.value) || 0,
-            height: parseInt(productForm.height.value) || 0,
-            imageUrls: imageUrls
-        };
-
-        if (isEditing) {
-            await updateDoc(doc(db, 'products', currentEditingProductId), productData);
-            showToast('Produto atualizado com sucesso!', 'success');
-        } else {
-            await addDoc(collection(db, 'products'), { ...productData, createdAt: new Date() });
-            showToast('Produto adicionado com sucesso!', 'success');
-        }
-
-        productForm.reset();
-        imagePreviewContainer.innerHTML = '';
-        currentEditingProductId = null;
-        existingImageUrls = [];
-
-    } catch (error) {
-        showToast(`Falha ao salvar produto`, 'error');
-    } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Salvar Produto';
-        imageUpload.value = '';
-    }
-});
+    });
+}
 
 // ==========================================
-// MOTOR DE CUPONS DE DESCONTO
+// 6. MOTOR DE CUPONS DE DESCONTO
 // ==========================================
 const couponForm = document.getElementById('coupon-form');
 const couponsTableBody = document.querySelector('#coupons-table tbody');
 
 if (couponForm && couponsTableBody) {
     
-    // 1. CRIAR OU ATUALIZAR CUPOM
+    // -> CRIAR OU ATUALIZAR CUPOM
     couponForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = couponForm.querySelector('button[type="submit"]');
@@ -471,14 +478,15 @@ if (couponForm && couponsTableBody) {
             const cupomRef = doc(db, 'coupons', codigo);
             const cupomSnap = await getDoc(cupomRef);
             
-            // Se o cupom for novo, inicia os usos em zero. Se já existir, mantém os usos.
+            // Se o cupom for novo, inicia os usos em zero.
             if (!cupomSnap.exists()) {
                 cupomData.usado = 0; 
             }
 
             await setDoc(cupomRef, cupomData, { merge: true });
             
-            Swal.fire('Axé!', 'Cupom criado/atualizado com sucesso!', 'success');
+            // Exibe o alerta bonito na tela!
+            Swal.fire('Axé!', 'Cupom criado com sucesso!', 'success');
             couponForm.reset();
         } catch (error) {
             console.error("Erro ao salvar cupom:", error);
@@ -489,7 +497,7 @@ if (couponForm && couponsTableBody) {
         }
     });
 
-    // 2. LER E EXIBIR OS CUPONS EM TEMPO REAL
+    // -> LER E EXIBIR OS CUPONS NA TABELA
     const couponsRef = collection(db, 'coupons');
     onSnapshot(couponsRef, (snapshot) => {
         couponsTableBody.innerHTML = '';
@@ -498,15 +506,13 @@ if (couponForm && couponsTableBody) {
             const cupom = documento.data();
             const id = documento.id;
             
-            // Formata a exibição do desconto (R$ ou %)
             const descontoTexto = cupom.tipo === 'porcentagem' 
                 ? `${cupom.valor}%` 
                 : `R$ ${cupom.valor.toFixed(2)}`;
                 
-            // Etiqueta visual de Status
             const statusHtml = cupom.ativo 
                 ? '<span class="status shipped" style="background-color: #2ecc71;">Ativo</span>' 
-                : '<span class="status cancelled" style="background-color: #e74c3c;">Desativado</span>';
+                : '<span class="status cancelled" style="background-color: #e74c3c;">Pausado</span>';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -527,7 +533,7 @@ if (couponForm && couponsTableBody) {
             couponsTableBody.appendChild(tr);
         });
 
-        // 3. AÇÕES DOS BOTÕES DA TABELA (Pausar e Excluir)
+        // -> AÇÕES DA TABELA DE CUPONS (Pausar/Excluir)
         document.querySelectorAll('.toggle-coupon-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = e.target.getAttribute('data-id');
