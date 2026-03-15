@@ -174,21 +174,44 @@ function renderCart() {
 
     // --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
     if (totalsEl) {
-        const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+        const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
         
-        // Adiciona o frete ao total
-        const total = subtotal + (window.valorFrete || 0);
-        
-        // Só cria a linha do frete se houver algum valor selecionado
-        let linhaFrete = '';
-        if (window.valorFrete > 0) {
-            linhaFrete = `<div class="summary-row"><span style="color: var(--cor-laranja);">Frete (${window.nomeFrete})</span><span>${BRL(window.valorFrete)}</span></div>`;
+        // 2. Lógica Visual do Cupom
+        let descontoVisual = 0;
+        let htmlDesconto = '';
+
+        if (window.cupomAtivo) {
+            descontoVisual = window.cupomAtivo.desconto;
+            
+            // Proteção: O desconto nunca pode ser maior que o subtotal dos produtos
+            if (descontoVisual > subtotal) descontoVisual = subtotal;
+
+            htmlDesconto = `
+                <div class="summary-row" style="color: #2ecc71; font-weight: bold;">
+                    <span>Desconto (${window.cupomAtivo.codigo})</span>
+                    <span>- ${BRL(descontoVisual)}</span>
+                </div>
+            `;
         }
 
+        // 3. Matemática Final
+        const totalFinal = (subtotal - descontoVisual) + (window.valorFrete || 0);
+
+        // 4. Injeta na Tela
         totalsEl.innerHTML = `
-            <div class="summary-row"><span>Subtotal</span><span>${BRL(subtotal)}</span></div>
-            ${linhaFrete}
-            <div class="summary-row total"><span>Total</span><span>${BRL(total)}</span></div>
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>${BRL(subtotal)}</span>
+            </div>
+            <div class="summary-row">
+                <span>Frete ${window.nomeFrete ? '(' + window.nomeFrete + ')' : ''}</span>
+                <span>${window.valorFrete > 0 ? BRL(window.valorFrete) : 'A calcular'}</span>
+            </div>
+            ${htmlDesconto}
+            <div class="summary-row total">
+                <span>Total</span>
+                <span>${BRL(totalFinal)}</span>
+            </div>
         `;
     }
     // --------------------------------------
