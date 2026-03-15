@@ -78,7 +78,6 @@ async function applyStoreTheme() {
         if (themeSnap.exists()) {
             const theme = themeSnap.data();
             
-            // 1. Mudar a Cor Principal e INJETAR AS ANIMAÇÕES
             if (theme.primaryColor) {
                 document.documentElement.style.setProperty('--cor-laranja', theme.primaryColor);
                 document.documentElement.style.setProperty('--cor-laranja-hover', theme.primaryColor + 'dd');
@@ -105,52 +104,51 @@ async function applyStoreTheme() {
                     .product-price-large { color: ${theme.primaryColor} !important; }
                     .login-form legend { border-bottom-color: ${theme.primaryColor} !important; }
 
-                    /* --- NOVAS ANIMAÇÕES DA FAIXA --- */
+                    /* --- A MÁGICA DA ANIMAÇÃO CORRIGIDA --- */
                     @keyframes blink-anim {
                         0% { opacity: 1; }
                         50% { opacity: 0.2; }
                         100% { opacity: 1; }
                     }
                     @keyframes scroll-anim {
-                        0% { transform: translateX(100%); }
-                        100% { transform: translateX(-100%); }
+                        0% { transform: translateX(100vw); } /* 🔴 100vw = Nasce totalmente à direita da tela */
+                        100% { transform: translateX(-100%); } /* Morre à esquerda */
                     }
                     .faixa-blink { animation: blink-anim 1.5s infinite ease-in-out; }
                     .faixa-scroll {
                         display: inline-block;
                         white-space: nowrap;
                         animation: scroll-anim 15s linear infinite;
+                        will-change: transform; /* Deixa o movimento fluido no telemóvel */
                     }
                 `;
             }
 
-            // 2. Adicionar a Faixa de Anúncio COM ANIMAÇÃO
             if (theme.topBarMessage && theme.topBarMessage.trim() !== '') {
                 if (!document.getElementById('dynamic-top-bar')) {
-                    // O Container escuro (que fica parado)
                     const topBarContainer = document.createElement('div');
                     topBarContainer.id = 'dynamic-top-bar';
-                    topBarContainer.style.cssText = `background-color: var(--cor-laranja); color: white; text-align: center; padding: 8px 15px; font-size: 0.9rem; font-weight: bold; width: 100%; z-index: 1000; overflow: hidden;`;
+                    // 🔴 O contêiner agora usa Flexbox para impedir achatamentos
+                    topBarContainer.style.cssText = `background-color: var(--cor-laranja); color: white; padding: 8px 15px; font-size: 0.9rem; font-weight: bold; width: 100%; box-sizing: border-box; z-index: 1000; overflow: hidden; display: flex; align-items: center; height: 40px;`;
                     
-                    // O Texto que vai ser animado
                     const textSpan = document.createElement('div');
                     textSpan.textContent = theme.topBarMessage;
 
-                    // Aplica a classe de animação dependendo da escolha do banco de dados
                     if (theme.topBarAnimation === 'blink') {
                         textSpan.className = 'faixa-blink';
+                        topBarContainer.style.justifyContent = 'center'; 
                     } else if (theme.topBarAnimation === 'scroll') {
                         textSpan.className = 'faixa-scroll';
-                        topBarContainer.style.textAlign = 'left'; // Necessário para o scroll funcionar bem
+                        // Sem justify-content, para o texto poder passear livremente
+                    } else {
+                        topBarContainer.style.justifyContent = 'center';
                     }
 
-                    // Junta tudo e coloca no topo do site
                     topBarContainer.appendChild(textSpan);
                     document.body.insertBefore(topBarContainer, document.body.firstChild);
                 }
             }
 
-            // 3. Trocar a Logo Dinamicamente
             if (theme.logoUrl) {
                 document.querySelectorAll('.logo, .login-logo').forEach(img => img.src = theme.logoUrl);
             }
