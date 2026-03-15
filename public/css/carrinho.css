@@ -222,4 +222,13 @@
         flex-direction: column !important;
         gap: 1rem;
     }
+
+    /* 8. Calculador de Frete no Mobile (Empilhado) */
+    .shipping-controls {
+        flex-direction: column !important;
+    }
+    
+    .shipping-controls button {
+        width: 100% !important;
+    }
 }
