@@ -12,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Rubik:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
-    <!-- ✅ Biblioteca de Notificações (essencial para a função de finalização) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script type="module" src="./js/main.js?v=2.0" defer></script>
@@ -30,7 +29,16 @@
                     <div class="cart-summary">
                         <h2 class="summary-title">Resumo do Pedido</h2>
                         
-                        <div class="shipping-calculator" style="margin-top: 0; margin-bottom: 2rem; border-top: none; padding-top: 0;">
+                        <div class="shipping-calculator" style="margin-top: 0; margin-bottom: 1.5rem; border-top: none; padding-top: 0;">
+                            <h3 class="shipping-title" style="font-size: 1.1rem;">Calcular Frete</h3>
+                            <div class="shipping-input-group">
+                                <input type="text" id="calc-cep" placeholder="CEP (apenas números)" maxlength="9" />
+                                <button type="button" id="btn-calc-shipping" class="submit-btn">Calcular</button>
+                            </div>
+                            <div id="shipping-result"></div>
+                        </div>
+
+                        <div class="shipping-calculator" style="margin-top: 0; margin-bottom: 2rem; border-top: 1px solid #eee; padding-top: 1.5rem;">
                             <h3 class="shipping-title" style="font-size: 1.1rem;">Cupom de Desconto</h3>
                             <div class="shipping-input-group">
                                 <input type="text" id="cupom-input" placeholder="Digite seu cupom" style="text-transform: uppercase;" />
@@ -38,9 +46,11 @@
                             </div>
                             <div id="cupom-result" style="margin-top: 10px; font-size: 0.9rem;"></div>
                         </div>
+
                         <div id="totals-summary">
                             </div>
                     </div>
+
                     <div class="checkout-form-container">
                         <h3 class="section-title">Dados para Envio</h3>
                         <form id="checkout-form" class="checkout-form login-form" method="POST">
