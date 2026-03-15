@@ -168,35 +168,44 @@
    📱 RESPONSIVIDADE DO CARRINHO (MOBILE)
    ========================================= */
 @media (max-width: 768px) {
-    /* 1. Impede vazamento nas colunas */
+    /* 1. EMPILHA TUDO NA VERTICAL (A Mágica Principal) */
+    .cart-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1.5rem;
+    }
+
+    /* 2. Ajusta as caixas para caberem 100% na tela do telemóvel */
     .cart-items-column, .cart-summary-column {
         padding: 1.2rem 1rem;
-        width: 100%;
-        overflow: hidden;
+        width: 100% !important;
+        box-sizing: border-box;
     }
 
-    /* 2. O Bug do Fieldset (Formulário) */
+    /* 3. O Bug do Fieldset (Formulário) */
     fieldset {
-        min-width: 0; /* Corrige o bug nativo do HTML em telemóveis */
+        min-width: 0;
         padding: 10px;
         width: 100%;
+        box-sizing: border-box;
     }
 
-    /* 3. Evita que nomes gigantes de produtos quebrem a tela */
+    /* 4. Evita que nomes gigantes quebrem a tela */
     .item-name {
         word-break: break-word;
         font-size: 0.95rem;
     }
 
-    /* 4. Reorganiza a linha do produto */
+    /* 5. Reorganiza a linha do produto (Foto na esquerda, Nome na direita) */
     .cart-item {
+        display: grid !important;
         grid-template-columns: 70px 1fr !important;
         gap: 0.8rem;
     }
 
-    /* 5. Joga o preço, botões de quantidade e lixeira para a linha de baixo */
+    /* 6. Joga o preço, botões de quantidade e lixeira para a linha de baixo */
     .item-actions {
-        grid-column: 1 / -1;
+        grid-column: 1 / -1 !important;
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
@@ -207,9 +216,10 @@
         width: 100%;
     }
 
-    /* 6. Os campos de endereço (Número e Complemento) ficam um por linha */
+    /* 7. Os campos de endereço (Número e Complemento) ficam um por linha */
     .checkout-form .form-grid {
-        grid-template-columns: 1fr;
+        display: flex !important;
+        flex-direction: column !important;
         gap: 1rem;
     }
 }
