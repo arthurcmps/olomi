@@ -50,7 +50,7 @@ main.site-main { flex-grow: 1; padding: 2.5rem 0; }
 .scroll {
     display: inline-block;
     padding-left: 100%; /* Começa exatamente na borda direita da tela */
-    animation: rolar-letreiro 15s linear infinite; /* 15s é uma velocidade de leitura confortável */
+    animation: rolar-letreiro 5s linear infinite; /* 15s é uma velocidade de leitura confortável */
     will-change: transform; /* Deixa o rolar "amanteigado" no telemóvel */
 }
 
