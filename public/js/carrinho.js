@@ -15,6 +15,7 @@ const shippingResult = document.getElementById('shipping-result');
 // Variáveis globais para armazenar a escolha do cliente (adicione no topo do arquivo se preferir)
 window.valorFrete = 0;
 window.nomeFrete = '';
+window.cupomAtivo = null; // Para futuras implementações de cupom de desconto, por exemplo
 
 if (btnCalcShipping) {
     btnCalcShipping.addEventListener('click', async () => {
@@ -310,7 +311,8 @@ form?.addEventListener('submit', async (e) => {
         const result = await createOrderFunction({ 
             items: itemsForFunction,
             customer: customerPayload,
-            shipping: shippingPayload
+            shipping: shippingPayload,
+            cupom: window.cupomAtivo
         });
         
         const { orderId, orderDetails, checkoutUrl } = result.data;
@@ -332,6 +334,49 @@ form?.addEventListener('submit', async (e) => {
         submitButton.textContent = 'Finalizar Compra';
     }
 });
+
+// ==========================================
+// LÓGICA DO CUPOM DE DESCONTO
+// ==========================================
+const btnAplicarCupom = document.getElementById('btn-aplicar-cupom');
+const inputCupom = document.getElementById('cupom-input');
+const cupomResult = document.getElementById('cupom-result');
+
+if (btnAplicarCupom) {
+    btnAplicarCupom.addEventListener('click', async () => {
+        const codigo = inputCupom.value.trim();
+        if (!codigo) return;
+
+        btnAplicarCupom.disabled = true;
+        btnAplicarCupom.textContent = 'Aguarde...';
+        cupomResult.innerHTML = '';
+
+        // Calcula o subtotal atual do carrinho
+        const cart = cartStore.get();
+        const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+
+        try {
+            const functionsBR = getFunctions(functions.app, 'southamerica-east1');
+            const validarCupomFn = httpsCallable(functionsBR, 'validarcupom');
+            
+            // Pergunta ao backend se o cupom é válido
+            const result = await validarCupomFn({ codigo, subtotal });
+            
+            window.cupomAtivo = result.data; // Guarda o cupom aprovado globalmente
+            cupomResult.innerHTML = `<span style="color: #2ecc71; font-weight: bold;">✅ Desconto de ${BRL(result.data.desconto)} aplicado!</span>`;
+            
+            // Atualiza a tela para mostrar o novo valor (chame a sua função de renderizar)
+            renderCart(); 
+        } catch (error) {
+            window.cupomAtivo = null;
+            cupomResult.innerHTML = `<span style="color: #e74c3c;">❌ ${error.message}</span>`;
+            renderCart();
+        } finally {
+            btnAplicarCupom.disabled = false;
+            btnAplicarCupom.textContent = 'Aplicar';
+        }
+    });
+}
 
 // Função de inicialização da página
 function init() {

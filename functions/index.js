@@ -47,12 +47,33 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
             
             // 2. ESTRUTURAR O DOCUMENTO COMPLETO PARA GUARDAR NA BASE DE DADOS
             const freteCusto = shipping && shipping.cost ? shipping.cost : 0;
+            let valorDesconto = 0;
+
+            // Se o cliente mandou um cupom, vamos checar no banco de dados de novo!
+            if (cupom && cupom.codigo) {
+                const cupomRef = db.collection('coupons').doc(cupom.codigo);
+                const cupomDoc = await transaction.get(cupomRef);
+                
+                if (cupomDoc.exists) {
+                    const cupomData = cupomDoc.data();
+                    // Regras de segurança finais:
+                    if (cupomData.ativo && cupomData.usado < cupomData.limiteUso && subtotalAmount >= cupomData.valorMinimo) {
+                        valorDesconto = cupom.desconto; 
+                        // 🔴 Dá baixa no cupom: soma +1 no número de vezes usado!
+                        transaction.update(cupomRef, { usado: cupomData.usado + 1 }); 
+                    }
+                }
+            }
+
+            const valorTotalFinal = (subtotalAmount - valorDesconto) + freteCusto;
+
             const orderDetails = { 
                 items: itemsForOrder, 
                 subtotal: subtotalAmount,
+                desconto: valorDesconto, // Guarda no pedido o quanto ele ganhou de desconto
                 shipping: shipping || { method: 'Nenhum', cost: 0 },
-                total: subtotalAmount + freteCusto, // Soma o valor dos produtos + frete
-                customer: customer || {} // Guarda os dados do formulário!
+                total: valorTotalFinal, // O valor final abatido
+                customer: customer || {} 
             };
 
             transaction.set(orderRef, { 
@@ -224,4 +245,59 @@ exports.webhookpagamento = onRequest(async (req, res) => {
         logger.error("Erro no webhook:", error.message);
         res.status(500).send("Erro interno");
     }
+});
+
+// --- NOVA FUNÇÃO: VALIDAÇÃO DE CUPOM DE DESCONTO ---
+exports.validarcupom = onCall({ region: "southamerica-east1" }, async (request) => {
+    const { codigo, subtotal } = request.data;
+
+    if (!codigo) {
+        throw new HttpsError('invalid-argument', 'Código não informado.');
+    }
+
+    const db = getFirestore();
+    // Procura o cupom no banco (convertendo para maiúsculas por segurança)
+    const cupomRef = db.collection('coupons').doc(codigo.toUpperCase());
+    const cupomSnap = await cupomRef.get();
+
+    if (!cupomSnap.exists) {
+        throw new HttpsError('not-found', 'Cupom inválido ou inexistente.');
+    }
+
+    const cupom = cupomSnap.data();
+
+    // 1. Verifica se está ativo
+    if (cupom.ativo === false) {
+        throw new HttpsError('failed-precondition', 'Este cupom está desativado.');
+    }
+
+    // 2. Verifica o limite de uso
+    if (cupom.usado >= cupom.limiteUso) {
+        throw new HttpsError('failed-precondition', 'Este cupom já atingiu o limite de usos.');
+    }
+
+    // 3. Verifica o valor mínimo da compra
+    if (subtotal < cupom.valorMinimo) {
+        throw new HttpsError('failed-precondition', `O valor mínimo para usar este cupom é R$ ${cupom.valorMinimo.toFixed(2)}.`);
+    }
+
+    // 4. Verifica a validade (se o campo validade existir)
+    if (cupom.validade && cupom.validade.toDate() < new Date()) {
+        throw new HttpsError('failed-precondition', 'Este cupom já expirou.');
+    }
+
+    // 5. Calcula o valor exato do desconto
+    let valorDesconto = 0;
+    if (cupom.tipo === 'fixo') {
+        valorDesconto = parseFloat(cupom.valor);
+    } else if (cupom.tipo === 'porcentagem') {
+        valorDesconto = subtotal * (parseFloat(cupom.valor) / 100);
+    }
+
+    // Retorna o sucesso para o Frontend!
+    return {
+        codigo: cupomSnap.id,
+        desconto: valorDesconto,
+        tipo: cupom.tipo
+    };
 });

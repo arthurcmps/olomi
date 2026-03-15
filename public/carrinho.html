@@ -28,16 +28,18 @@
                 </div>
                 <div class="cart-summary-column">
                     <div class="cart-summary">
-                        <h3 class="summary-title">Resumo do Pedido</h3>
-                        <div id="totals-summary"></div>
-                        <div class="shipping-calculator" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
-                            <h4 class="shipping-title" style="margin-bottom: 1rem;">Calcular Frete</h4>
-                            <div class="shipping-input-group" style="display: flex; gap: 0.5rem;">
-                                <input type="text" id="calc-cep" placeholder="Digite o CEP" maxlength="9" style="flex-grow: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-family: var(--fonte-corpo);" />
-                                <button type="button" id="btn-calc-shipping" style="background-color: var(--cor-laranja); color: white; border: none; padding: 0 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Calcular</button>
+                        <h2 class="summary-title">Resumo do Pedido</h2>
+                        
+                        <div class="shipping-calculator" style="margin-top: 0; margin-bottom: 2rem; border-top: none; padding-top: 0;">
+                            <h3 class="shipping-title" style="font-size: 1.1rem;">Cupom de Desconto</h3>
+                            <div class="shipping-input-group">
+                                <input type="text" id="cupom-input" placeholder="Digite seu cupom" style="text-transform: uppercase;" />
+                                <button type="button" id="btn-aplicar-cupom" class="submit-btn">Aplicar</button>
                             </div>
-                            <div id="shipping-result" style="margin-top: 1rem;"></div>
+                            <div id="cupom-result" style="margin-top: 10px; font-size: 0.9rem;"></div>
                         </div>
+                        <div id="totals-summary">
+                            </div>
                     </div>
                     <div class="checkout-form-container">
                         <h3 class="section-title">Dados para Envio</h3>
