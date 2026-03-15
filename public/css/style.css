@@ -36,6 +36,42 @@ body {
 .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
 main.site-main { flex-grow: 1; padding: 2.5rem 0; }
 
+/* =========================================
+   ANIMAÇÃO DA FAIXA DO TOPO (TEMA)
+   ========================================= */
+.top-bar {
+    overflow: hidden; 
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.scroll {
+    display: inline-block;
+    padding-left: 100%; /* Começa exatamente na borda direita da tela */
+    animation: rolar-letreiro 15s linear infinite; /* 15s é uma velocidade de leitura confortável */
+    will-change: transform; /* Deixa o rolar "amanteigado" no telemóvel */
+}
+
+@keyframes rolar-letreiro {
+    0% {
+        transform: translateX(0); /* Parte da direita (graças ao padding-left acima) */
+    }
+    100% {
+        transform: translateX(-100%); /* Atravessa a tela inteira e some pela esquerda */
+    }
+}
+
+.blink {
+    animation: piscar-atencao 2s ease-in-out infinite;
+}
+
+@keyframes piscar-atencao {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
 /* 2. CABEÇALHO (HEADER) */
 .site-header { background-color: var(--cor-preto); padding: 1rem 0; box-shadow: var(--sombra-padrao); }
 .site-header .container { display: flex; justify-content: space-between; align-items: center; }
