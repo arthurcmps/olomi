@@ -26,10 +26,11 @@
         <style>
           .logo-edit-container:hover .logo-overlay { opacity: 1 !important; }
         </style>
-        <div style="display: flex; gap: 3rem; align-items: center; flex-wrap: wrap;">
+        
+        <div class="theme-settings-wrapper">
           
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <label style="font-weight: bold; margin-bottom: 15px;">Logotipo da Loja</label>
+          <div class="logo-section">
+            <label>Logotipo da Loja</label>
             <div class="logo-edit-container" id="logo-edit-container" style="position: relative; width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--cor-laranja); overflow: hidden; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
               <img id="current-logo-img" src="./assets/img/logo.jpg" alt="Logo Atual" style="width: 100%; height: 100%; object-fit: cover;" />
               <div class="logo-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
@@ -37,23 +38,23 @@
               </div>
             </div>
             <input type="file" id="logoUpload" accept="image/png, image/jpeg, image/webp" style="display: none;" />
-            <span style="font-size: 0.85rem; color: #666; margin-top: 10px;">Clique na imagem para alterar</span>
+            <span class="logo-hint">Clique na imagem para alterar</span>
           </div>
 
-          <form id="theme-form" class="admin-form" style="flex: 1; min-width: 300px;">
+          <form id="theme-form" class="admin-form theme-form-container">
             <div class="form-grid">
-              <div>
-                <label for="themeColor" style="display:block; margin-bottom: 5px; font-weight: bold;">Cor Principal dos Botões</label>
+              <div class="input-group">
+                <label for="themeColor">Cor Principal dos Botões</label>
                 <input type="color" id="themeColor" name="themeColor" value="#f39c12" style="height: 50px; cursor: pointer; padding: 0;" />
               </div>
               
               <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div>
-                  <label for="topBarText" style="display:block; margin-bottom: 5px; font-weight: bold;">Mensagem da Faixa no Topo</label>
+                <div class="input-group">
+                  <label for="topBarText">Mensagem da Faixa no Topo</label>
                   <input type="text" id="topBarText" name="topBarText" placeholder="Ex: Frete Grátis acima de R$ 200!" />
                 </div>
-                <div>
-                  <label for="topBarAnimation" style="display:block; margin-bottom: 5px; font-weight: bold;">Animação da Faixa</label>
+                <div class="input-group">
+                  <label for="topBarAnimation">Animação da Faixa</label>
                   <select id="topBarAnimation" name="topBarAnimation" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
                     <option value="static">Estática (Parada)</option>
                     <option value="blink">Piscar (Atenção)</option>
@@ -61,7 +62,6 @@
                   </select>
                 </div>
               </div>
-
             </div>
             <button type="submit" class="submit-btn" style="margin-top: 1rem;">Salvar Tema da Loja</button>
           </form>
@@ -71,28 +71,65 @@
       <section class="admin-section">
         <h2 class="admin-section-title">Adicionar / Editar Produto</h2>
         <form id="product-form" class="admin-form">
-          <input name="name" type="text" placeholder="Nome do Produto" required />
-          <textarea name="description" placeholder="Descrição do Produto" rows="4"></textarea>
-          <div class="form-grid">
-            <input name="price" type="text" placeholder="Preço (ex: 29,90)" required />
-            <input name="promoPrice" type="number" step="0.01" placeholder="Preço Promocional (Opcional)" />
-            <input name="stock" type="number" placeholder="Estoque" required />
+          
+          <div class="input-group">
+            <label>Nome do Produto</label>
+            <input name="name" type="text" placeholder="Ex: Bata Africana Branca" required />
           </div>
-          <input name="category" type="text" placeholder="Categoria" required />
+
+          <div class="input-group">
+            <label>Descrição do Produto</label>
+            <textarea name="description" placeholder="Detalhes, tecido, significados..." rows="4"></textarea>
+          </div>
+
+          <div class="form-grid">
+            <div class="input-group">
+              <label>Preço (R$)</label>
+              <input name="price" type="text" placeholder="Ex: 89,90" required />
+            </div>
+            <div class="input-group">
+              <label>Preço Promocional (Opcional)</label>
+              <input name="promoPrice" type="number" step="0.01" placeholder="Ex: 69.90" />
+            </div>
+            <div class="input-group">
+              <label>Quantidade em Estoque</label>
+              <input name="stock" type="number" placeholder="Ex: 15" required />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Categoria</label>
+            <input name="category" type="text" placeholder="Ex: Roupas, Acessórios, Imagens..." required />
+          </div>
+
           <fieldset style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-            <legend style="font-weight: bold; padding: 0 0.5rem; color: var(--cor-laranja);">Dados para Frete (Oculto)</legend>
+            <legend style="font-weight: bold; padding: 0 0.5rem; color: var(--cor-laranja);">Dados para Cálculo de Frete</legend>
             <div class="form-grid">
-              <input name="weight" type="number" step="0.01" placeholder="Peso (kg) ex: 0.5" required />
-              <input name="length" type="number" placeholder="Comprimento (cm)" required />
-              <input name="width" type="number" placeholder="Largura (cm)" required />
-              <input name="height" type="number" placeholder="Altura (cm)" required />
+              <div class="input-group">
+                <label>Peso (kg)</label>
+                <input name="weight" type="number" step="0.01" placeholder="Ex: 0.5" required />
+              </div>
+              <div class="input-group">
+                <label>Comprimento (cm)</label>
+                <input name="length" type="number" placeholder="Ex: 20" required />
+              </div>
+              <div class="input-group">
+                <label>Largura (cm)</label>
+                <input name="width" type="number" placeholder="Ex: 15" required />
+              </div>
+              <div class="input-group">
+                <label>Altura (cm)</label>
+                <input name="height" type="number" placeholder="Ex: 10" required />
+              </div>
             </div>
           </fieldset>
+
           <label class="file-upload-label">
             <span>Escolher imagens do produto</span>
             <input id="image-upload" name="images" type="file" accept="image/*" multiple />
           </label>
           <div id="image-preview-container" class="image-preview-container"></div>
+          
           <button type="submit" class="submit-btn">Salvar Produto</button>
         </form>
       </section>
