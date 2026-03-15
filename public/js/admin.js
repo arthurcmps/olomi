@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/
 import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, deleteDoc, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js';
 import { BRL, showToast, showConfirmation } from './utils.js';
 import { getStorage, ref, deleteObject, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
+import { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 // ==========================================
 // 1. CONFIGURAÇÕES INICIAIS E COMPRESSÃO
@@ -439,3 +440,119 @@ productForm.addEventListener('submit', async (e) => {
         imageUpload.value = '';
     }
 });
+
+// ==========================================
+// MOTOR DE CUPONS DE DESCONTO
+// ==========================================
+const couponForm = document.getElementById('coupon-form');
+const couponsTableBody = document.querySelector('#coupons-table tbody');
+
+if (couponForm && couponsTableBody) {
+    
+    // 1. CRIAR OU ATUALIZAR CUPOM
+    couponForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = couponForm.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = 'Salvando...';
+
+        const formData = new FormData(couponForm);
+        const codigo = formData.get('codigo').trim().toUpperCase();
+        
+        const cupomData = {
+            tipo: formData.get('tipo'),
+            valor: parseFloat(formData.get('valor')),
+            valorMinimo: parseFloat(formData.get('valorMinimo')) || 0,
+            limiteUso: parseInt(formData.get('limiteUso')) || 999,
+            ativo: formData.get('ativo') === 'on',
+            updatedAt: new Date()
+        };
+
+        try {
+            const cupomRef = doc(db, 'coupons', codigo);
+            const cupomSnap = await getDoc(cupomRef);
+            
+            // Se o cupom for novo, inicia os usos em zero. Se já existir, mantém os usos.
+            if (!cupomSnap.exists()) {
+                cupomData.usado = 0; 
+            }
+
+            await setDoc(cupomRef, cupomData, { merge: true });
+            
+            Swal.fire('Axé!', 'Cupom criado/atualizado com sucesso!', 'success');
+            couponForm.reset();
+        } catch (error) {
+            console.error("Erro ao salvar cupom:", error);
+            Swal.fire('Erro', 'Não foi possível salvar o cupom.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Criar / Atualizar Cupom';
+        }
+    });
+
+    // 2. LER E EXIBIR OS CUPONS EM TEMPO REAL
+    const couponsRef = collection(db, 'coupons');
+    onSnapshot(couponsRef, (snapshot) => {
+        couponsTableBody.innerHTML = '';
+        
+        snapshot.forEach((documento) => {
+            const cupom = documento.data();
+            const id = documento.id;
+            
+            // Formata a exibição do desconto (R$ ou %)
+            const descontoTexto = cupom.tipo === 'porcentagem' 
+                ? `${cupom.valor}%` 
+                : `R$ ${cupom.valor.toFixed(2)}`;
+                
+            // Etiqueta visual de Status
+            const statusHtml = cupom.ativo 
+                ? '<span class="status shipped" style="background-color: #2ecc71;">Ativo</span>' 
+                : '<span class="status cancelled" style="background-color: #e74c3c;">Desativado</span>';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight: bold; color: var(--cor-laranja); font-size: 1.1rem;">${id}</td>
+                <td style="font-weight: bold;">${descontoTexto}</td>
+                <td>R$ ${cupom.valorMinimo.toFixed(2)}</td>
+                <td>${cupom.usado || 0} / ${cupom.limiteUso}</td>
+                <td>${statusHtml}</td>
+                <td>
+                    <button class="action-btn toggle-coupon-btn" data-id="${id}" data-ativo="${cupom.ativo}" style="background-color: #f39c12; color: white; margin-right: 5px;">
+                        ${cupom.ativo ? 'Pausar' : 'Ativar'}
+                    </button>
+                    <button class="action-btn delete-coupon-btn" data-id="${id}" style="background-color: #e74c3c; color: white;">
+                        Excluir
+                    </button>
+                </td>
+            `;
+            couponsTableBody.appendChild(tr);
+        });
+
+        // 3. AÇÕES DOS BOTÕES DA TABELA (Pausar e Excluir)
+        document.querySelectorAll('.toggle-coupon-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.getAttribute('data-id');
+                const isAtivo = e.target.getAttribute('data-ativo') === 'true';
+                await updateDoc(doc(db, 'coupons', id), { ativo: !isAtivo });
+            });
+        });
+
+        document.querySelectorAll('.delete-coupon-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.getAttribute('data-id');
+                Swal.fire({
+                    title: 'Tem certeza?',
+                    text: `Você vai deletar o cupom ${id} para sempre!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e74c3c',
+                    confirmButtonText: 'Sim, excluir!'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        await deleteDoc(doc(db, 'coupons', id));
+                    }
+                });
+            });
+        });
+    });
+}
