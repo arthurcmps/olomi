@@ -56,22 +56,29 @@ if (btnCalcShipping) {
             
             if (apenasCorreios.length > 0) {
                 apenasCorreios.forEach(opcao => {
-                    // O SuperFrete já manda o nome ("PAC" ou "SEDEX") e o preço
                     const tipo = opcao.name; 
-                    const valorNumerico = parseFloat(opcao.price);
+                    
+                    // 🔴 A MÁGICA DO LUCRO: 
+                    // A API manda o que você paga (price) e o que você economizou (discount).
+                    // Para o cliente ver o preço de balcão dos Correios, nós somamos os dois!
+                    const precoComDesconto = parseFloat(opcao.price);
+                    const valorDesconto = parseFloat(opcao.discount || 0);
+                    
+                    // Tenta usar a variável de preço original da API, senão faz a soma matemática.
+                    const valorDeBalcao = parseFloat(opcao.original_price) || (precoComDesconto + valorDesconto);
                     
                     htmlOpcoes += `
                         <label style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                             <div>
-                                <input type="radio" name="escolhaFrete" value="${valorNumerico}" data-nome="${tipo}" onchange="selecionarFrete(this)">
+                                <input type="radio" name="escolhaFrete" value="${valorDeBalcao}" data-nome="${tipo}" onchange="selecionarFrete(this)">
                                 <strong>${tipo}</strong> (até ${opcao.delivery_time} dias úteis)
                             </div>
-                            <span>${BRL(valorNumerico)}</span>
+                            <span>${BRL(valorDeBalcao)}</span>
                         </label>
                     `;
                 });
                 htmlOpcoes += '</div>';
-                shippingResult.innerHTML = htmlOpcoes;
+                shippingResult.innerHTML = htmlOpcoes;            
             } else {
                 // Se a API não devolver opções dos Correios para este CEP
                 shippingResult.innerHTML = `<div style="color: #e74c3c; margin-top: 1rem; padding: 1rem; border: 1px solid #ffcccc; border-radius: 8px; background-color: #fff9f9;">

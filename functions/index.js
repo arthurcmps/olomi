@@ -107,7 +107,7 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
 });
 
 
-// --- NOVA FUNÇÃO DE FRETE (API SUPERFRETE REAL) ---
+// --- NOVA FUNÇÃO DE FRETE (API SUPERFRETE REAL COM SEGURO) ---
 exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request) => {
     const { cepDestino, items } = request.data;
 
@@ -115,28 +115,31 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
         throw new HttpsError('invalid-argument', 'CEP e itens são obrigatórios.');
     }
 
-    // 1. CUBAGEM INTELIGENTE (Simulando uma única caixa para todos os itens)
+    // 1. CUBAGEM INTELIGENTE E VALOR DECLARADO
     let pesoTotal = 0;
     let alturaTotal = 0;
     let maiorLargura = 0;
     let maiorComprimento = 0;
+    let valorTotalCarrinho = 0; // 🔴 NOVO: Variável para o Seguro
 
     items.forEach(item => {
         const qty = item.qty || 1;
-        // Soma os pesos
+        
+        // Medidas
         pesoTotal += (parseFloat(item.weight) || 0.5) * qty;
-        // Empilha os produtos (soma as alturas)
         alturaTotal += (parseFloat(item.height) || 15) * qty;
-        // Pega a maior largura e comprimento para a base da caixa
         maiorLargura = Math.max(maiorLargura, (parseFloat(item.width) || 20));
         maiorComprimento = Math.max(maiorComprimento, (parseFloat(item.length) || 20));
+        
+        // 🔴 NOVO: Soma o preço dos produtos para o seguro
+        valorTotalCarrinho += (parseFloat(item.price) || 0) * qty;
     });
 
-    // O SuperFrete exige dimensões mínimas e os IDs dos serviços (1=PAC, 2=SEDEX)
     const payloadSuperFrete = {
         from: { postal_code: "21371270" }, // O seu CEP de Origem
         to: { postal_code: cepDestino.replace(/\D/g, '') },
         services: "1,2", 
+        declared_value: valorTotalCarrinho, // 🔴 NOVO: Envia o valor para a API cobrar o seguro
         package: {
             weight: Math.max(0.1, pesoTotal),
             height: Math.max(2, alturaTotal),
@@ -146,10 +149,9 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
     };
     
     try {
-        // 2. CHAMADA OFICIAL À API DO SUPERFRETE
+        // NÃO SE ESQUEÇA DO SEU TOKEN AQUI!
         const SUPERFRETE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NzM1MDM0OTEsInN1YiI6IkxFczJNa0kyUENhVVZOZnhhRjhma2FDQ0gyQjMifQ.WeF19JgJWGIHKHdQzN9NVlQ-dp4KQjFHkLY_diHz6IM';
 
-        // 👉 MUDANÇA CRUCIAL AQUI: api.superfrete.com
         const response = await axios.post(
             'https://api.superfrete.com/api/v0/calculator', 
             payloadSuperFrete,
@@ -158,17 +160,14 @@ exports.calcularfrete = onCall({ region: "southamerica-east1" }, async (request)
                     'Authorization': `Bearer ${SUPERFRETE_TOKEN}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    // 👉 MUDANÇA CRUCIAL AQUI: Disfarce de Navegador Chrome
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
             }
         );
 
-        // 3. RETORNA OS DADOS REAIS PARA O FRONTEND
         return response.data;
 
     } catch (error) {
-        // Log com Raio-X para capturar a resposta exata do servidor caso falhe
         const statusErro = error.response ? error.response.status : 'Sem Status';
         const detalheDoErro = error.response && error.response.data 
             ? JSON.stringify(error.response.data) 
