@@ -1,117 +1,72 @@
-# Projeto E-commerce Olomi
+# 🌿 Olomi - E-commerce de Artigos Africanos e Religiosos
 
-Este é um projeto de e-commerce completo construído com HTML, CSS e JavaScript puro (Vanilla JS), utilizando o Firebase como um backend abrangente (BaaS - Backend as a Service). A plataforma foi desenvolvida de forma modular e inclui funcionalidades essenciais tanto para clientes quanto para administradores.
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
 
-## Visão Geral
+Uma plataforma de e-commerce completa, desenvolvida sob uma arquitetura **Serverless** orientada a eventos. O projeto foi construído para entregar alta performance, gestão de conteúdo autônoma (CMS) e integrações logísticas e financeiras reais, sem a necessidade de frameworks de frontend pesados.
 
-A Olomi é uma loja virtual focada em artigos africanos e religiosos. Os clientes podem navegar por um catálogo dinâmico, pesquisar produtos, adicioná-los ao carrinho e gerenciar as suas contas e pedidos. Em paralelo, um painel de administração protegido permite a gestão completa de produtos e o acompanhamento de pedidos.
+Este projeto compõe o portfólio de conclusão do curso de Análise e Desenvolvimento de Sistemas, demonstrando a aplicação prática de modelagem NoSQL, transações atômicas e integrações via API.
 
-## Tecnologias Utilizadas
+---
 
-- **Frontend:**
-  - HTML5
-  - CSS3 (com Variáveis CSS para um design coeso)
-  - JavaScript (ES6+), organizado em módulos para melhor manutenibilidade.
+## ✨ Funcionalidades em Destaque
 
-- **Backend (Firebase):**
-  - **Firebase Authentication:** Para autenticação segura de clientes e administradores (login com e-mail e senha).
-  - **Firestore:** Como banco de dados NoSQL para armazenar informações de produtos, pedidos, utilizadores e controle de acesso (roles).
-  - **Firebase Storage:** Para o upload e armazenamento das imagens dos produtos.
+* **Painel de Administração (CMS):** Gestão completa de catálogo, controle de estoque e acompanhamento de status de pedidos em tempo real.
+* **Tematização Dinâmica Injetável:** Alteração de cores primárias, logomarca e letreiros promocionais animados diretamente pelo painel admin, com reflexo imediato no site via injeção de `<style>` no DOM.
+* **Motor de Descontos e Cupons:** Validação de cupons em tempo real com regras de limite de uso, valor mínimo de compra e abatimento automático na finalização do pedido.
+* **Otimização de Imagens no Cliente (Canvas API):** Redimensionamento e compressão de imagens para o formato `.webp` nativamente no navegador antes do upload, poupando banda e custos de Storage.
+* **Filtro em Memória (DOM Manipulation):** Busca instantânea de pedidos no painel admin sem onerar o banco de dados com novas requisições de leitura.
+* **Integração Logística (SuperFrete):** Cubagem virtual inteligente do carrinho e cálculo de frete (Correios) com declaração de valor para seguro.
+* **Checkout Seguro (Mercado Pago):** Geração de preferências de pagamento e processamento automático de status via Webhooks integrados às Cloud Functions.
 
-## Estrutura do Projeto
+---
 
-O projeto está organizado de forma lógica para separar as responsabilidades:
+## 🛠️ Arquitetura e Stack Tecnológica
 
-```
-/public
-|-- /assets/          # Imagens estáticas (logo, etc.)
-|-- /css/             # Ficheiros de estilo (style.css)
-|-- /js/              # Todos os scripts JavaScript
-|   |-- admin.js        # Lógica do painel de admin
-|   |-- catalogo.js     # Lógica da página inicial (catálogo)
-|   |-- carrinho.js     # Lógica da página do carrinho
-|   |-- produto.js      # Lógica da página de detalhe do produto
-|   |-- auth.js         # Funções de autenticação
-|   |-- main.js         # Script principal (cabeçalho, navegação)
-|   |-- firebase.js     # Configuração e inicialização do Firebase
-|   |-- utils.js        # Funções utilitárias (formatação, cart store)
-|   `-- ...           # Outros scripts modulares
-|
-|-- admin.html          # Painel de Administração
-|-- carrinho.html       # Página do carrinho de compras
-|-- index.html          # Página inicial (catálogo de produtos)
-|-- produto.html        # Página de detalhe do produto
-|-- login-cliente.html  # Página de login
-|-- minha-conta.html    # Página do cliente com histórico de pedidos
-`-- ...               # Outras páginas HTML
-```
+O projeto adota o ecossistema **Google Cloud / Firebase** para infraestrutura:
 
-## Funcionalidades
+* **Frontend:** HTML5, CSS3, JavaScript (ES6 Modules). *Client-Side Rendering* focado em velocidade e interatividade nativa.
+* **Banco de Dados:** Cloud Firestore (NoSQL).
+* **Backend:** Firebase Cloud Functions (Node.js) para orquestração de pagamentos e transações de banco de dados.
+* **Autenticação:** Firebase Auth (E-mail/Senha e controle de roles/RBAC).
+* **Armazenamento:** Firebase Storage.
+* **Hospedagem:** Firebase Hosting com controle avançado de *Cache Busting*.
 
-### Para Clientes:
+---
 
-- **Autenticação Completa:** Cadastro, login e gestão de sessão.
-- **Catálogo Dinâmico:** Navegação, pesquisa textual e filtro por categorias.
-- **Visualização de Produto:** Página de detalhe para cada item.
-- **Carrinho de Compras Persistente:** Adicionar, remover e atualizar a quantidade de itens (persiste no `localStorage`).
-- **Feedback ao Utilizador:** Notificações (toasts) para ações como "adicionado ao carrinho".
-- **Área "Minha Conta":** Acesso seguro ao histórico de pedidos.
+## 🗄️ Estrutura do Banco de Dados (Firestore)
 
-### Para Administradores:
+A modelagem NoSQL foi desenhada priorizando leituras assíncronas O(1) e imutabilidade de registros de vendas.
 
-- **Painel Seguro:** Acesso a um painel de administração (`/admin.html`) restrito a utilizadores com a role de "admin".
-- **Gestão de Produtos (CRUD):**
-  - **Criar:** Adicionar novos produtos com nome, descrição, preço, stock, categoria e imagens.
-  - **Ler:** Visualizar todos os produtos numa tabela organizada.
-  - **Atualizar:** (Funcionalidade a ser implementada no frontend) Editar produtos existentes.
-  - **Deletar:** Remover produtos da loja.
-- **Gestão de Pedidos:** Visualizar todos os pedidos feitos pelos clientes e atualizar o seu status (ex: "Pendente" para "Enviado").
-- **Criação de Novos Admins:** Uma página dedicada para atribuir a role de administrador a novos utilizadores.
+* **`products`**: Catálogo, controle de estoque e dimensões físicas.
+* **`orders`**: Histórico estático do pedido (preserva o valor original dos produtos na data da compra, dados do cliente e método de envio).
+* **`coupons`**: Regras de negócio de promoções e controle de contagem de uso.
+* **`users` / `roles`**: Perfil de clientes e matriz de privilégios administrativos.
+* **`settings`**: Configurações globais de UI/UX da loja.
 
-## Como Configurar e Executar o Projeto
+---
 
-1.  **Clone o repositório:**
-    ```bash
-    git clone https://github.com/arthurcmps/olomi.git
-    cd olomi
-    ```
+## 🔒 Segurança (Firestore Rules & Transações Atômicas)
 
-2.  **Configure o Firebase:**
-    - Crie um projeto no [console do Firebase](https://console.firebase.google.com/).
-    - Ative os seguintes serviços: **Authentication** (com o provedor "E-mail/Senha"), **Firestore** e **Storage**.
-    - Na visão geral do seu projeto, adicione um novo aplicativo da Web (</>).
-    - O Firebase fornecerá um objeto de configuração `firebaseConfig`. Copie este objeto.
+A integridade do e-commerce é garantida por dois pilares:
+1. **Cloud Functions Transactions:** A baixa de estoque e a aplicação de cupons ocorrem dentro de `db.runTransaction()`. Se qualquer etapa falhar (ex: estoque insuficiente na hora H), toda a operação sofre *rollback*.
+2. **Security Rules:** O banco de dados bloqueia leituras não autorizadas. Um usuário só pode acessar a coleção `orders` se o `userId` do documento corresponder ao seu próprio UID autenticado. Modificações no catálogo são restritas a usuários listados na coleção `roles` com privilégios de administrador.
 
-3.  **Crie o Ficheiro de Configuração:**
-    - Na pasta `public/js/`, crie um novo ficheiro chamado `firebase.js`.
-    - Cole o objeto `firebaseConfig` e inicialize o Firebase, como no exemplo abaixo:
+---
 
-    ```javascript
-    // public/js/firebase.js
+## 🚀 Como Executar o Projeto Localmente
 
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
+### Pré-requisitos
+* [Node.js](https://nodejs.org/) instalado.
+* Conta no [Firebase](https://firebase.google.com/) com um projeto configurado (Firestore, Auth, Storage, Functions ativados).
+* [Firebase CLI](https://firebase.google.com/docs/cli) instalado globalmente (`npm install -g firebase-tools`).
 
-    // Cole aqui o objeto de configuração do seu projeto Firebase
-    const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_AUTH_DOMAIN",
-      projectId: "SEU_PROJECT_ID",
-      storageBucket: "SEU_STORAGE_BUCKET",
-      messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-      appId: "SUA_APP_ID"
-    };
+### Passo a Passo
 
-    // Inicializa o Firebase e exporta os serviços
-    const app = initializeApp(firebaseConfig);
-    export const db = getFirestore(app);
-    export const auth = getAuth(app);
-    export const storage = getStorage(app);
-    ```
-
-4.  **Execute Localmente:**
-    - Como este é um projeto de frontend puro, pode executá-lo com qualquer servidor web estático. Se tiver o VS Code, uma excelente opção é a extensão **Live Server**.
-    - Clique com o botão direito no ficheiro `public/index.html` e selecione "Open with Live Server".
-    
+1. **Clone o repositório**
+   ```bash
+   git clone [https://github.com/SEU_USUARIO/olomi-ecommerce.git](https://github.com/SEU_USUARIO/olomi-ecommerce.git)
+   cd olomi-ecommerce
