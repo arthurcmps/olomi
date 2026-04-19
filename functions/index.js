@@ -68,37 +68,53 @@ exports.createorder = onCall({ region: "southamerica-east1" }, async (request) =
             const orderRef = db.collection('orders').doc();
 
             // 2. Processamento do Cartão no Mercado Pago
-            const client = new MercadoPagoConfig({ accessToken: 'TEST-1703928170803920-022522-76e65d6dea70c0339d6baa69736a623d-230652618' });
+            const client = new MercadoPagoConfig({ accessToken: 'TEST-1703928170803920-022522-76e65d6dea70c0339d6baa69736a623d-230652618' }); // Mantém a sua chave
             const mpPayment = new Payment(client);
+
+            // MONTA O PACOTE DE FORMA INTELIGENTE (Sem campos vazios)
+            const paymentBody = {
+                transaction_amount: Number(valorTotalFinal.toFixed(2)),
+                token: payment.token,
+                description: 'Compra na Olomi',
+                installments: Number(payment.installments || 1),
+                payment_method_id: payment.payment_method_id,
+                payer: {
+                    // Usa estritamente o e-mail validado pelo Brick
+                    email: payment.payer?.email || customer.email
+                },
+                external_reference: orderRef.id
+            };
+
+            // Só adiciona o CPF/CNPJ se ele realmente veio preenchido do formulário
+            if (payment.payer?.identification && payment.payer.identification.number) {
+                paymentBody.payer.identification = payment.payer.identification;
+            }
+
+            // A PROTEÇÃO PRINCIPAL: Só manda o emissor do cartão se ele existir!
+            if (payment.issuer_id && payment.issuer_id !== "" && payment.issuer_id !== null) {
+                paymentBody.issuer_id = payment.issuer_id;
+            }
 
             let mpResponse;
             try {
-                // BLINDAGEM: Usamos o operador '?' para evitar crash se o Mercado Pago não enviar algum dado
                 mpResponse = await mpPayment.create({
-                    body: {
-                        transaction_amount: Number(valorTotalFinal.toFixed(2)),
-                        token: payment.token,
-                        description: 'Compra na Olomi',
-                        installments: Number(payment.installments || 1),
-                        payment_method_id: payment.payment_method_id,
-                        issuer_id: payment.issuer_id,
-                        payer: {
-                            email: customer.email || payment.payer?.email,
-                            // Se o CPF não vier preenchido, manda um genérico para não travar
-                            identification: payment.payer?.identification || { type: 'CPF', number: '00000000000' }
-                        },
-                        external_reference: orderRef.id
-                    },
+                    body: paymentBody,
                     requestOptions: { idempotencyKey: orderRef.id } 
                 });
             } catch (mpError) {
-                // SE O MERCADO PAGO RECUSAR (Ex: Cartão Inválido), CAI AQUI SEM CRASHAR O SERVIDOR
-                console.error("Erro na API do Mercado Pago:", mpError);
-                throw new HttpsError('aborted', 'O pagamento foi recusado pela operadora. Verifique os dados do cartão.');
-            }
-
-            if (mpResponse.status !== 'approved' && mpResponse.status !== 'in_process') {
-                throw new HttpsError('aborted', `Pagamento Recusado: ${mpResponse.status_detail}`);
+                // 1. Imprime exatamente o que tentámos enviar
+                console.error("📦 PACOTE ENVIADO AO MP:", JSON.stringify(paymentBody, null, 2));
+                
+                // 2. Extrai o erro profundo (se existir)
+                let detalhesErro = mpError.message;
+                if (mpError.cause && mpError.cause.length > 0) {
+                    detalhesErro = JSON.stringify(mpError.cause);
+                }
+                
+                console.error("❌ MOTIVO REAL DA RECUSA:", detalhesErro);
+                
+                // 3. Atira o erro real para a tela do site (SweetAlert)
+                throw new HttpsError('aborted', `O Mercado Pago bloqueou por este motivo: ${detalhesErro}`);
             }
 
             // 3. Atualização Definitiva no Banco (Escritas)
