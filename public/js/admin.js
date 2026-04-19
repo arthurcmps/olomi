@@ -189,25 +189,33 @@ const loadOrders = () => {
 // ==========================================
 // 4. VERIFICAÇÃO DE LOGIN
 // ==========================================
+// ==========================================
+// VERIFICAÇÃO DE SEGURANÇA E INICIALIZAÇÃO
+// ==========================================
 onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        window.location.href = 'login.html';
-        return;
-    }
-    try {
-        const roleRef = doc(db, 'roles', user.uid);
-        const roleSnap = await getDoc(roleRef);
-        if (!roleSnap.exists() || !roleSnap.data().admin) {
-            showToast('Acesso negado. Apenas administradores.', 'error');
-            setTimeout(() => window.location.href = 'index.html', 2000);
-        } else {
-            loadProducts();
-            loadOrders();
-            loadThemeSettings();
+    if (user) {
+        try {
+            // Vai no banco confirmar se a pessoa tem o crachá de Admin
+            const roleRef = doc(db, 'roles', user.uid);
+            const roleSnap = await getDoc(roleRef);
+            
+            if (roleSnap.exists() && roleSnap.data().admin === true) {
+                // ✅ É Admin! Carrega todas as tabelas do painel
+                if (typeof loadOrders === 'function') loadOrders();
+                if (typeof loadProducts === 'function') loadProducts(); // Os produtos voltam a aparecer aqui!
+                if (typeof loadCoupons === 'function') loadCoupons();
+            } else {
+                // ❌ Tem conta (cliente), mas tentou entrar na página de Admin
+                console.warn("Acesso negado: Usuário não é administrador.");
+                window.location.href = 'login.html';
+            }
+        } catch (error) {
+            console.error("Erro ao verificar permissões:", error);
+            window.location.href = 'login.html';
         }
-    } catch (error) {
-        console.error('Erro ao verificar permissões:', error);
-        showToast('Erro ao verificar permissões.', 'error');
+    } else {
+        // ❌ Ninguém está logado. Expulsa para a tela de login imediatamente.
+        window.location.href = 'login.html';
     }
 });
 

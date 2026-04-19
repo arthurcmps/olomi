@@ -12,15 +12,26 @@ const btnCalcShipping = document.getElementById('btn-calc-shipping');
 const inputCep = document.getElementById('calc-cep');
 const shippingResult = document.getElementById('shipping-result');
 
-// Variáveis globais para armazenar a escolha do cliente (adicione no topo do arquivo se preferir)
+form.addEventListener('submit', (e) => e.preventDefault());
+
 window.valorFrete = 0;
 window.nomeFrete = '';
-window.cupomAtivo = null; // Para futuras implementações de cupom de desconto, por exemplo
+window.cupomAtivo = null;
 
+// ==========================================
+// CONFIGURAÇÃO DO MERCADO PAGO BRICKS
+// ==========================================
+// SUBSTITUA PELA SUA PUBLIC KEY DE PRODUÇÃO/TESTE
+const mp = new MercadoPago('TEST-08c64d61-dcbc-41de-bff4-fb1e6b4aaf54', { locale: 'pt-BR' });
+const bricksBuilder = mp.bricks();
+let paymentBrickController = null;
+
+// ==========================================
+// FUNÇÕES DE FRETE E CARRINHO (MANTIDAS)
+// ==========================================
 if (btnCalcShipping) {
     btnCalcShipping.addEventListener('click', async () => {
         const cep = inputCep.value.replace(/\D/g, '');
-        
         if (cep.length !== 8) {
             shippingResult.innerHTML = '<span style="color: #e74c3c;">Digite um CEP válido com 8 dígitos.</span>';
             return;
@@ -32,7 +43,7 @@ if (btnCalcShipping) {
         const cart = cartStore.get();
         const itemsForFreight = cart.map(item => ({
             qty: item.qty,
-            weight: item.weight || 0.5, // Garante um peso mínimo
+            weight: item.weight || 0.5, 
             length: item.length || 20,
             width: item.width || 20,
             height: item.height || 20
@@ -43,35 +54,21 @@ if (btnCalcShipping) {
         
         try {
             const result = await calcularFreteFunction({ cepDestino: cep, items: itemsForFreight });
-            
-            // A API do SuperFrete retorna a lista completa aqui
-            const todasOpcoes = result.data;
-
-            // --- O FILTRO MÁGICO ---
-            // Ignora Jadlog, Loggi, etc., e pega apenas o que for da empresa "Correios"
-            const apenasCorreios = todasOpcoes.filter(opcao => 
-                opcao.company && opcao.company.name.toUpperCase() === 'CORREIOS'
-            );
+            const apenasCorreios = result.data.filter(opcao => opcao.company && opcao.company.name.toUpperCase() === 'CORREIOS');
 
             let htmlOpcoes = '<div style="margin-top: 1rem; text-align: left; display: flex; flex-direction: column; gap: 0.5rem;">';
-            
             if (apenasCorreios.length > 0) {
                 apenasCorreios.forEach(opcao => {
                     const tipo = opcao.name; 
-                    
-                    // 🔴 A MÁGICA DO LUCRO: 
-                    // A API manda o que você paga (price) e o que você economizou (discount).
-                    // Para o cliente ver o preço de balcão dos Correios, nós somamos os dois!
                     const precoComDesconto = parseFloat(opcao.price);
                     const valorDesconto = parseFloat(opcao.discount || 0);
-                    
-                    // Tenta usar a variável de preço original da API, senão faz a soma matemática.
                     const valorDeBalcao = parseFloat(opcao.original_price) || (precoComDesconto + valorDesconto);
+                    const idFrete = `frete-${tipo.replace(/\s+/g, '')}`;
                     
                     htmlOpcoes += `
-                        <label style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+                        <label for="${idFrete}" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                             <div>
-                                <input type="radio" name="escolhaFrete" value="${valorDeBalcao}" data-nome="${tipo}" onchange="selecionarFrete(this)">
+                                <input type="radio" id="${idFrete}" name="escolhaFrete" value="${valorDeBalcao}" data-nome="${tipo}" onchange="selecionarFrete(this)">
                                 <strong>${tipo}</strong> (até ${opcao.delivery_time} dias úteis)
                             </div>
                             <span>${BRL(valorDeBalcao)}</span>
@@ -81,30 +78,22 @@ if (btnCalcShipping) {
                 htmlOpcoes += '</div>';
                 shippingResult.innerHTML = htmlOpcoes;            
             } else {
-                // Se a API não devolver opções dos Correios para este CEP
-                shippingResult.innerHTML = `<div style="color: #e74c3c; margin-top: 1rem; padding: 1rem; border: 1px solid #ffcccc; border-radius: 8px; background-color: #fff9f9;">
-                    <strong style="display:block;">Indisponível no momento.</strong>
-                    Não foi possível calcular o frete dos Correios para este CEP. Verifique se o CEP está correto.
-                </div>`;
+                shippingResult.innerHTML = `<div style="color: #e74c3c; margin-top: 1rem; padding: 1rem; border: 1px solid #ffcccc; border-radius: 8px; background-color: #fff9f9;">Indisponível no momento.</div>`;
             }
-
         } catch (error) {
-            console.error("Erro do frete:", error);
-            shippingResult.innerHTML = `<span style="color: #e74c3c; display: block; margin-top: 1rem;">Erro ao consultar os Correios: Tente novamente.</span>`;
+            shippingResult.innerHTML = `<span style="color: #e74c3c; display: block; margin-top: 1rem;">Erro ao consultar os Correios. Tente novamente.</span>`;
         } finally {
             btnCalcShipping.disabled = false;
         }
     });
 }
 
-// Função global para atualizar o total quando o cliente clica na bolinha do rádio
 window.selecionarFrete = function(radioElement) {
     window.valorFrete = parseFloat(radioElement.value);
     window.nomeFrete = radioElement.getAttribute('data-nome');
-    renderCart(); // Atualiza a tela com o novo total
+    renderCart(); 
 };
 
-// Resetar o frete se alterar os itens do carrinho
 cartStore.onChange(() => {
     window.valorFrete = 0;
     window.nomeFrete = '';
@@ -112,7 +101,6 @@ cartStore.onChange(() => {
     renderCart();
 });
 
-// Preenche o formulário com os dados do utilizador autenticado
 async function populateFormWithUserData(user) {
     if (!user || !form) return;
     const userRef = doc(db, 'users', user.uid);
@@ -134,7 +122,136 @@ async function populateFormWithUserData(user) {
     }
 }
 
-// Renderiza os itens do carrinho e os totais
+function updateCart(productId, action) {
+    const cart = cartStore.get();
+    const itemIndex = cart.findIndex(i => i.id === productId);
+    if (itemIndex < 0) return;
+
+    const item = cart[itemIndex];
+    if (action === 'increase') {
+        if (item.qty < item.stock) item.qty++;
+        else showToast('Quantidade máxima em stock atingida.', 'info');
+    } else if (action === 'decrease') {
+        item.qty--;
+        if (item.qty <= 0) cart.splice(itemIndex, 1);
+    } else if (action === 'remove') {
+        cart.splice(itemIndex, 1);
+    }
+    cartStore.set(cart); 
+}
+
+if (itemsListEl) {
+    itemsListEl.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        const { id, action } = button.dataset;
+        if (id && action) updateCart(id, action);
+    });
+}
+
+// ==========================================
+// RENDERIZAÇÃO DO CARRINHO E DO BRICK
+// ==========================================
+const renderPaymentBrick = async (totalFinal) => {
+    if (totalFinal <= 0) return;
+
+    // FORÇA O VALOR A SER UM NÚMERO EXATO (ex: 150.50) PARA NÃO QUEBRAR A API
+    const valorCorrigido = Number(totalFinal.toFixed(2));
+
+    if (paymentBrickController) {
+        paymentBrickController.update({ amount: valorCorrigido });
+        return;
+    }
+
+    const settings = {
+        initialization: {
+            amount: valorCorrigido
+        },
+        customization: {
+            visual: { style: { theme: 'default' } },
+            paymentMethods: {
+                creditCard: "all",   // 🟢 ATIVA CARTÕES DE CRÉDITO
+                debitCard: "all",    // 🟢 ATIVA CARTÕES DE DÉBITO
+                bankTransfer: "all", // 🟢 ATIVA O PIX
+                maxInstallments: 12
+            }
+        },
+        callbacks: {
+            onReady: () => console.log('Mercado Pago Brick Pronto e carregado!'),
+            onSubmit: ({ selectedPaymentMethod, formData }) => {
+                return new Promise(async (resolve, reject) => {
+                    try { // O try agora protege TUDO
+                        const user = auth.currentUser;
+                        if (!user) {
+                            showToast('Você precisa estar autenticado para finalizar a compra.', 'warning');
+                            window.location.href = `login-cliente.html?redirect=carrinho.html`;
+                            return reject(); // Destrava
+                        }
+
+                        if (window.valorFrete === 0) {
+                            showToast('Por favor, calcule e selecione uma opção de frete antes de finalizar.', 'warning');
+                            inputCep.focus();
+                            return reject(); // Destrava
+                        }
+
+                        if (!form.checkValidity()) {
+                            form.reportValidity();
+                            return reject(); // Destrava
+                        }
+
+                        const formEntries = Object.fromEntries(new FormData(form).entries());
+                        const customerPayload = {
+                            name: formEntries.name,
+                            phone: formEntries.phone,
+                            email: formEntries.email,
+                            address: {
+                                cep: formEntries.cep, street: formEntries.street, number: formEntries.number,
+                                complement: formEntries.complement, neighborhood: formEntries.neighborhood,
+                                city: formEntries.city, state: formEntries.state
+                            }
+                        };
+                        const shippingPayload = { method: window.nomeFrete, cost: window.valorFrete };
+                        const itemsForFunction = cartStore.get().map(item => ({ id: item.id, qty: item.qty }));
+
+                        const functionsBR = getFunctions(functions.app, 'southamerica-east1');
+                        const createOrderFunction = httpsCallable(functionsBR, 'createorder');
+
+                        // Chama o Servidor
+                        const result = await createOrderFunction({ 
+                            items: itemsForFunction,
+                            customer: customerPayload,
+                            shipping: shippingPayload,
+                            cupom: window.cupomAtivo,
+                            payment: formData 
+                        });
+                        
+                        // Validação estrita
+                        if (result.data && result.data.status === 'success') {
+                            cartStore.clear();
+                            Swal.fire("Sucesso!", "O seu pagamento foi aprovado e o pedido recebido!", "success").then(() => {
+                                window.location.href = 'minha-conta.html';
+                            });
+                            resolve(); // Sucesso absoluto!
+                        } else {
+                            // SE NÃO FOR SUCESSO, FORÇA O ERRO PARA NÃO CONGELAR
+                            throw new Error("O servidor respondeu, mas não confirmou o pagamento. Você atualizou o Backend?");
+                        }
+                    } catch (error) {
+                        console.error("Erro fatal no checkout:", error);
+                        Swal.fire("Erro no Pagamento", error.message || 'Ocorreu um erro ao processar o cartão.', "error");
+                        reject(); // 🔴 ISSO DESCONGELA A TELA!
+                    }
+                });
+            },
+            onError: (error) => {
+                console.error("Erro interno do Brick:", error);
+            }
+        }
+    };
+
+    paymentBrickController = await bricksBuilder.create('payment', 'paymentCardBrick_container', settings);
+};
+
 function renderCart() {
     const cart = cartStore.get();
     
@@ -147,8 +264,6 @@ function renderCart() {
                     <a href="index.html" class="back-to-store-btn">Voltar ao Catálogo</a>
                 </div>`;
         }
-        if (itemsListEl) itemsListEl.innerHTML = '';
-        if (totalsEl) totalsEl.innerHTML = '';
         return;
     }
 
@@ -172,18 +287,13 @@ function renderCart() {
         `).join('');
     }
 
-    // --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
     if (totalsEl) {
         const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
-        
-        // 2. Lógica Visual do Cupom
         let descontoVisual = 0;
         let htmlDesconto = '';
 
         if (window.cupomAtivo) {
             descontoVisual = window.cupomAtivo.desconto;
-            
-            // Proteção: O desconto nunca pode ser maior que o subtotal dos produtos
             if (descontoVisual > subtotal) descontoVisual = subtotal;
 
             htmlDesconto = `
@@ -194,10 +304,8 @@ function renderCart() {
             `;
         }
 
-        // 3. Matemática Final
         const totalFinal = (subtotal - descontoVisual) + (window.valorFrete || 0);
 
-        // 4. Injeta na Tela
         totalsEl.innerHTML = `
             <div class="summary-row">
                 <span>Subtotal</span>
@@ -213,150 +321,11 @@ function renderCart() {
                 <span>${BRL(totalFinal)}</span>
             </div>
         `;
+
+        // Renderiza ou atualiza o valor no Brick de pagamento
+        renderPaymentBrick(totalFinal);
     }
-    // --------------------------------------
 }
-
-// Atualiza a quantidade de um item no carrinho ou remove-o
-function updateCart(productId, action) {
-    const cart = cartStore.get();
-    const itemIndex = cart.findIndex(i => i.id === productId);
-    if (itemIndex < 0) return;
-
-    const item = cart[itemIndex];
-    if (action === 'increase') {
-        if (item.qty < item.stock) {
-            item.qty++;
-        } else {
-            showToast('Quantidade máxima em stock atingida.', 'info');
-        }
-    } else if (action === 'decrease') {
-        item.qty--;
-        if (item.qty <= 0) {
-            cart.splice(itemIndex, 1);
-        }
-    } else if (action === 'remove') {
-        cart.splice(itemIndex, 1);
-    }
-    
-    cartStore.set(cart); // Salva o carrinho e notifica os listeners (que vão chamar o renderCart)
-}
-
-// Constrói a mensagem para o WhatsApp
-function buildWhatsappMessage(orderId, orderData, customerData) {
-    const lines = [];
-    lines.push('🛍️ *Novo Pedido Olomi* 🛍️');
-    lines.push(`*Pedido:* ${orderId}`);
-    lines.push('--------------------------');
-    orderData.items.forEach(it => lines.push(`${it.qty}x ${it.name} – ${BRL(it.price * it.qty)}`));
-    lines.push('--------------------------');
-    // --- CORREÇÃO EXTRA: Garante que a mensagem no WhatsApp inclui o frete ---
-    if (window.valorFrete > 0) {
-        lines.push(`Frete (${window.nomeFrete}): ${BRL(window.valorFrete)}`);
-        // Adiciona o frete ao total do pedido na mensagem
-        lines.push(`*Total:* *${BRL(orderData.total + window.valorFrete)}*`); 
-    } else {
-        lines.push(`*Total:* *${BRL(orderData.total)}*`);
-    }
-    lines.push('--------------------------');
-    lines.push('*Dados do Cliente:*');
-    lines.push(`*Nome:* ${customerData.name}`);
-    if (customerData.phone) lines.push(`*WhatsApp:* ${customerData.phone}`);
-    lines.push(`*Endereço:* ${customerData.fullAddress}`);
-    lines.push('\nObrigado pela preferência! ✨');
-    return lines.join('\n');
-}
-
-// Listener para os botões de +/-
-if (itemsListEl) {
-    itemsListEl.addEventListener('click', (event) => {
-        const button = event.target.closest('button');
-        if (!button) return;
-        const { id, action } = button.dataset;
-        if (id && action) updateCart(id, action);
-    });
-}
-
-// Listener para o formulário de checkout
-form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const user = auth.currentUser;
-    if (!user) {
-        showToast('Você precisa de estar autenticado para finalizar a compra.', 'warning');
-        return window.location.href = `login-cliente.html?redirect=carrinho.html`;
-    }
-
-    const cart = cartStore.get();
-    if (cart.length === 0) {
-        return showToast('O seu carrinho está vazio.', 'info');
-    }
-
-    if (window.valorFrete === 0) {
-        showToast('Por favor, calcule e selecione uma opção de frete antes de finalizar.', 'warning');
-        inputCep.focus();
-        return;
-    }
-
-    const submitButton = form.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-    submitButton.textContent = 'Validando...';
-
-    // 1. CAPTURAR TODOS OS DADOS DO CLIENTE E DO FRETE AQUI
-    const formData = Object.fromEntries(new FormData(form).entries());
-    const customerPayload = {
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email || user.email,
-        address: {
-            cep: formData.cep,
-            street: formData.street,
-            number: formData.number,
-            complement: formData.complement,
-            neighborhood: formData.neighborhood,
-            city: formData.city,
-            state: formData.state
-        }
-    };
-    
-    const shippingPayload = {
-        method: window.nomeFrete,
-        cost: window.valorFrete
-    };
-
-    const itemsForFunction = cart.map(item => ({ id: item.id, qty: item.qty }));
-    
-    // Garanta que está a chamar a função na região correta se estiver a usar o servidor BR
-    const functionsBR = getFunctions(functions.app, 'southamerica-east1'); 
-    const createOrderFunction = httpsCallable(functionsBR, 'createorder');
-
-    try {
-        // 2. ENVIAR O PACOTE COMPLETO PARA O BACKEND
-        const result = await createOrderFunction({ 
-            items: itemsForFunction,
-            customer: customerPayload,
-            shipping: shippingPayload,
-            cupom: window.cupomAtivo
-        });
-        
-        const { orderId, orderDetails, checkoutUrl } = result.data;
-        submitButton.textContent = 'Redirecionando para o pagamento...';
-        
-        // Limpa o carrinho e avisa o cliente
-        cartStore.clear();
-        showToast('Pedido gerado! Redirecionando para o pagamento...', 'success');
-        
-        // Redireciona para o ambiente de testes do Mercado Pago
-        setTimeout(() => {
-            window.location.href = checkoutUrl;
-        }, 1500);
-
-    } catch (error) {
-        console.error("Erro ao finalizar pedido:", error);
-        showToast(error.message || 'Ocorreu um erro desconhecido.', 'error');
-        submitButton.disabled = false;
-        submitButton.textContent = 'Finalizar Compra';
-    }
-});
 
 // ==========================================
 // LÓGICA DO CUPOM DE DESCONTO
@@ -374,21 +343,16 @@ if (btnAplicarCupom) {
         btnAplicarCupom.textContent = 'Aguarde...';
         cupomResult.innerHTML = '';
 
-        // Calcula o subtotal atual do carrinho
         const cart = cartStore.get();
         const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
 
         try {
             const functionsBR = getFunctions(functions.app, 'southamerica-east1');
             const validarCupomFn = httpsCallable(functionsBR, 'validarcupom');
-            
-            // Pergunta ao backend se o cupom é válido
             const result = await validarCupomFn({ codigo, subtotal });
             
-            window.cupomAtivo = result.data; // Guarda o cupom aprovado globalmente
+            window.cupomAtivo = result.data; 
             cupomResult.innerHTML = `<span style="color: #2ecc71; font-weight: bold;">✅ Desconto de ${BRL(result.data.desconto)} aplicado!</span>`;
-            
-            // Atualiza a tela para mostrar o novo valor (chame a sua função de renderizar)
             renderCart(); 
         } catch (error) {
             window.cupomAtivo = null;
@@ -401,19 +365,10 @@ if (btnAplicarCupom) {
     });
 }
 
-// Função de inicialização da página
 function init() {
-    // --- MELHORIA: Sistema reativo ---
-    // 1. Renderiza o estado inicial do carrinho.
     renderCart();
-    // 2. Regista a função renderCart para ser chamada sempre que o carrinho mudar.
     cartStore.onChange(renderCart);
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            populateFormWithUserData(user);
-        }
-    });
+    onAuthStateChanged(auth, (user) => { if (user) populateFormWithUserData(user); });
 }
 
 init();

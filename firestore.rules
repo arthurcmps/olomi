@@ -1,44 +1,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- FUNÇÕES AUXILIARES ---
+
+    // Função que verifica se quem está pedindo o dado tem o crachá de admin
     function isAdmin() {
-      // Garante que a função só é chamada com um UID válido.
-      return request.auth != null && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.admin == true;
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.admin == true;
     }
 
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+    // Vitrine (Público lê, só Admin altera)
+    match /products/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /coupons/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    // --- REGRAS ESPECÍFICAS ---
+    // Pedidos (Cliente lê os dele, Admin lê e edita todos)
+    match /orders/{document=**} {
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
 
-    // Utilizadores só podem ler e editar os seus próprios dados.
+    // Usuários (Cliente lê e edita o dele, Admin lê todos)
     match /users/{userId} {
-      allow read, update: if isOwner(userId);
-      allow create: if request.auth != null; // Permite o registo de um novo utilizador
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
-    // Funções só podem ser lidas pelo próprio utilizador ou por um admin.
+    // Roles (Apenas Admin pode promover alguém a Admin)
     match /roles/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if request.auth != null; // Permite a atribuição de função no registo
-    }
-
-    // Produtos podem ser lidos por todos, mas apenas escritos por administradores.
-    match /products/{productId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    // Pedidos (orders)
-    match /orders/{orderId} {
-      // Um utilizador autenticado pode criar um pedido para si mesmo.
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      // Um utilizador pode ler/atualizar os seus próprios pedidos, e um admin pode gerir todos.
-      allow read, update: if isAdmin() || (request.auth != null && isOwner(resource.data.userId));
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

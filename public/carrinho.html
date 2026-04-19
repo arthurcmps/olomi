@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Rubik:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script type="module" src="js/main.js?v=3.0" defer></script>
@@ -47,32 +48,35 @@
                             <div id="cupom-result" style="margin-top: 10px; font-size: 0.9rem;"></div>
                         </div>
 
-                        <div id="totals-summary">
-                            </div>
+                        <div id="totals-summary"></div>
                     </div>
 
                     <div class="checkout-form-container">
-                        <h3 class="section-title">Dados para Envio</h3>
+                        <h3 class="section-title">Dados de Envio e Pagamento</h3>
                         <form id="checkout-form" class="checkout-form login-form" method="POST">
                             <fieldset>
                                 <legend>Dados Pessoais</legend>
-                                <input name="name" placeholder="Nome completo" required />
-                                <input name="phone" placeholder="WhatsApp (DDD + Número)" required />
-                                <input name="email" type="email" placeholder="E-mail (opcional)" />
+                                <input type="text" id="user_name" name="name" placeholder="Nome completo" autocomplete="name" required />
+                                <input type="tel" id="user_phone" name="phone" placeholder="WhatsApp (DDD + Número)" autocomplete="tel" required />
+                                <input type="email" id="user_email" name="email" placeholder="E-mail" autocomplete="email" required />
                             </fieldset>
+
                             <fieldset>
                                 <legend>Endereço de Entrega</legend>
-                                <input name="cep" type="text" placeholder="CEP (apenas números)" required />
-                                <input name="street" type="text" placeholder="Rua / Logradouro" required />
+                                <input type="text" id="address_cep" name="cep" placeholder="CEP (apenas números)" autocomplete="postal-code" required />
+                                <input type="text" id="address_street" name="street" placeholder="Rua / Logradouro" autocomplete="address-line1" required />
+                                
                                 <div class="form-grid">
-                                    <input name="number" type="text" placeholder="Número" required />
-                                    <input name="complement" type="text" placeholder="Complemento (opcional)" />
+                                    <input type="text" id="address_number" name="number" placeholder="Número" autocomplete="address-line2" required />
+                                    <input type="text" id="address_complement" name="complement" placeholder="Complemento (opcional)" autocomplete="address-line3" />
                                 </div>
-                                <input name="neighborhood" type="text" placeholder="Bairro" required />
-                                <input name="city" type="text" placeholder="Cidade" required />
-                                <input name="state" type="text" placeholder="Estado (UF)" required />
+                                
+                                <input type="text" id="address_neighborhood" name="neighborhood" placeholder="Bairro" autocomplete="address-level3" required />
+                                <input type="text" id="address_city" name="city" placeholder="Cidade" autocomplete="address-level2" required />
+                                <input type="text" id="address_state" name="state" placeholder="Estado (UF)" autocomplete="address-level1" required />
                             </fieldset>
-                            <button type="submit" class="submit-btn">Finalizar Compra</button>
+                            
+                            <div id="paymentCardBrick_container" style="margin-top: 1.5rem;"></div>
                         </form>
                     </div>
                 </div>
