@@ -120,69 +120,92 @@ const loadProducts = () => {
 const loadOrders = () => {
     const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, orderBy("createdAt", "desc"));
+    
     onSnapshot(q, (snapshot) => {
         ordersTableBody.innerHTML = '';
+        
+        // Se a coleção estiver vazia (Testes recusados não viram pedidos)
+        if (snapshot.empty) {
+            ordersTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #666;">Nenhum pedido encontrado no banco de dados.</td></tr>';
+            return;
+        }
+
         snapshot.forEach(docSnap => {
-            const order = docSnap.data();
-            const orderId = docSnap.id;
-            const tr = document.createElement('tr');
-            tr.className = 'order-summary-row';
-            tr.dataset.orderId = orderId;
-            const orderDate = order.createdAt?.toDate().toLocaleDateString('pt-BR') || 'Pendente';
-            const statusMap = { pending: { text: 'Pendente', class: 'pending' }, paid: { text: 'Pago', class: 'paid' }, shipped: { text: 'Enviado', class: 'shipped' }, cancelled: { text: 'Cancelado', class: 'cancelled' }};
-            const statusInfo = statusMap[order.status] || statusMap.pending;
-            const customer = order.customer || {};
-            const address = customer.address || {};
-            const shipping = order.shipping || { method: 'Nenhum', cost: 0 };
-            const formattedAddress = address.street ? `${address.street}, ${address.number} ${address.complement ? '- ' + address.complement : ''}<br>${address.neighborhood}, ${address.city} - ${address.state}<br>CEP: ${address.cep}` : (order.customer?.fullAddress || 'Endereço não fornecido');
+            try { // O try/catch blinda a tabela contra "dados sujos" antigos
+                const order = docSnap.data();
+                const orderId = docSnap.id;
+                const tr = document.createElement('tr');
+                tr.className = 'order-summary-row';
+                tr.dataset.orderId = orderId;
+                
+                // Proteção: Verifica se a data existe e é válida
+                let orderDate = 'Data Indisponível';
+                if (order.createdAt && typeof order.createdAt.toDate === 'function') {
+                    orderDate = order.createdAt.toDate().toLocaleDateString('pt-BR');
+                }
 
-            // 🟢 Puxa o nome do cupom (se existir) e junta ao HTML
-            const nomeCupom = order.cupomUsado ? ` (${order.cupomUsado})` : '';
-            const descontoHTML = order.desconto && order.desconto > 0 
-                ? `<br><small style="color: #2ecc71; font-weight: bold;">Desconto${nomeCupom}: -${BRL(order.desconto)}</small>` 
-                : '';
+                const statusMap = { pending: { text: 'Pendente', class: 'pending' }, paid: { text: 'Pago', class: 'paid' }, shipped: { text: 'Enviado', class: 'shipped' }, cancelled: { text: 'Cancelado', class: 'cancelled' }};
+                const statusInfo = statusMap[order.status] || statusMap.pending;
+                const customer = order.customer || {};
+                const address = customer.address || {};
+                const shipping = order.shipping || { method: 'Nenhum', cost: 0 };
+                const formattedAddress = address.street ? `${address.street}, ${address.number} ${address.complement ? '- ' + address.complement : ''}<br>${address.neighborhood}, ${address.city} - ${address.state}<br>CEP: ${address.cep}` : (order.customer?.fullAddress || 'Endereço não fornecido');
 
-            tr.innerHTML = `
-                <td><strong>#${orderId.substring(0, 6)}</strong></td>
-                <td><strong>${customer.name || 'Cliente (Sem Nome)'}</strong><br><small>📱 ${customer.phone || 'Sem telefone'}</small></td>
-                <td>${orderDate}</td>
-                <td>
-                    <strong>${BRL(order.total)}</strong><br>
-                    <small style="color: #666;">Frete: ${shipping.method} (${BRL(shipping.cost)})</small>
-                    ${descontoHTML}
-                </td>
-                <td><span class="status ${statusInfo.class}">${statusInfo.text}</span></td>
-                <td class="order-actions">${(order.status === 'pending' || order.status === 'paid') ? `<button class="action-btn ship" data-id="${orderId}">Marcar Enviado</button><button class="action-btn cancel" data-id="${orderId}">Cancelar</button>` : ''}</td>
-            `;
+                const nomeCupom = order.cupomUsado ? ` (${order.cupomUsado})` : '';
+                const descontoHTML = order.desconto && order.desconto > 0 
+                    ? `<br><small style="color: #2ecc71; font-weight: bold;">Desconto${nomeCupom}: -${BRL(order.desconto)}</small>` 
+                    : '';
 
-            const detailsTr = document.createElement('tr');
-            detailsTr.className = 'order-details-row';
-            detailsTr.style.display = 'none';
-            const itemsHtml = order.items.map(item => `<li>${item.qty}x ${item.name} (${BRL(item.price)})</li>`).join('');
+                tr.innerHTML = `
+                    <td><strong>#${orderId.substring(0, 6)}</strong></td>
+                    <td><strong>${customer.name || 'Cliente (Sem Nome)'}</strong><br><small>📱 ${customer.phone || 'Sem telefone'}</small></td>
+                    <td>${orderDate}</td>
+                    <td>
+                        <strong>${BRL(order.total || 0)}</strong><br>
+                        <small style="color: #666;">Frete: ${shipping.method} (${BRL(shipping.cost || 0)})</small>
+                        ${descontoHTML}
+                    </td>
+                    <td><span class="status ${statusInfo.class}">${statusInfo.text}</span></td>
+                    <td class="order-actions">${(order.status === 'pending' || order.status === 'paid') ? `<button class="action-btn ship" data-id="${orderId}">Marcar Enviado</button><button class="action-btn cancel" data-id="${orderId}">Cancelar</button>` : ''}</td>
+                `;
 
-            // 🟢 Mostra também na aba de detalhes expansível
-            const descontoDetailsHTML = order.desconto && order.desconto > 0 
-                ? `<p style="color: #2ecc71;"><strong>Desconto${nomeCupom}:</strong> -${BRL(order.desconto)}</p>` 
-                : '';
+                const detailsTr = document.createElement('tr');
+                detailsTr.className = 'order-details-row';
+                detailsTr.style.display = 'none';
+                
+                // Proteção: Garante que os itens são uma lista (array) antes de mapear
+                const itemsArray = Array.isArray(order.items) ? order.items : [];
+                const itemsHtml = itemsArray.map(item => `<li>${item.qty}x ${item.name} (${BRL(item.price || 0)})</li>`).join('');
 
-            detailsTr.innerHTML = `
-                <td colspan="6">
-                    <div class="order-details-content" style="display: flex; gap: 2rem; text-align: left; padding: 1rem; background-color: #f9f9f9; border-radius: 8px;">
-                        <div style="flex: 1;"><p><strong>ID do Pedido:</strong> ${orderId}</p><p><strong>Data:</strong> ${order.createdAt?.toDate().toLocaleString('pt-BR')}</p><p><strong>Email:</strong> ${customer.email || 'Não informado'}</p>
-                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;"><strong>Endereço de Entrega:</strong><br><span style="color: var(--cor-secundaria);">${formattedAddress}</span></div></div>
-                        <div style="flex: 1;"><strong>Itens:</strong><ul style="margin-top: 0.5rem; padding-left: 1.2rem;">${itemsHtml}</ul>
-                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
-                            <p><strong>Subtotal:</strong> ${BRL(order.subtotal || 0)}</p>
-                            <p><strong>Frete:</strong> ${BRL(shipping.cost)}</p>
-                            ${descontoDetailsHTML}
-                            <p style="font-size: 1.1rem; color: var(--cor-laranja);"><strong>Total: ${BRL(order.total)}</strong></p>
-                        </div></div>
-                    </div>
-                </td>
-            `;
-            ordersTableBody.appendChild(tr);
-            ordersTableBody.appendChild(detailsTr);
+                const descontoDetailsHTML = order.desconto && order.desconto > 0 
+                    ? `<p style="color: #2ecc71;"><strong>Desconto${nomeCupom}:</strong> -${BRL(order.desconto)}</p>` 
+                    : '';
+
+                detailsTr.innerHTML = `
+                    <td colspan="6">
+                        <div class="order-details-content" style="display: flex; gap: 2rem; text-align: left; padding: 1rem; background-color: #f9f9f9; border-radius: 8px;">
+                            <div style="flex: 1;"><p><strong>ID do Pedido:</strong> ${orderId}</p><p><strong>Data:</strong> ${orderDate}</p><p><strong>Email:</strong> ${customer.email || 'Não informado'}</p>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;"><strong>Endereço de Entrega:</strong><br><span style="color: var(--cor-secundaria);">${formattedAddress}</span></div></div>
+                            <div style="flex: 1;"><strong>Itens:</strong><ul style="margin-top: 0.5rem; padding-left: 1.2rem;">${itemsHtml}</ul>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+                                <p><strong>Subtotal:</strong> ${BRL(order.subtotal || 0)}</p>
+                                <p><strong>Frete:</strong> ${BRL(shipping.cost || 0)}</p>
+                                ${descontoDetailsHTML}
+                                <p style="font-size: 1.1rem; color: var(--cor-laranja);"><strong>Total: ${BRL(order.total || 0)}</strong></p>
+                            </div></div>
+                        </div>
+                    </td>
+                `;
+                ordersTableBody.appendChild(tr);
+                ordersTableBody.appendChild(detailsTr);
+                
+            } catch (err) {
+                // Se algum pedido antigo estiver muito quebrado, ele cai aqui, avisa no F12 e não quebra a tela!
+                console.error("⚠️ Pedido pulado devido a erro de formatação (ID: " + docSnap.id + "):", err);
+            }
         });
+    }, (error) => {
+        console.error("Erro crítico ao buscar pedidos:", error);
     });
 };
 
